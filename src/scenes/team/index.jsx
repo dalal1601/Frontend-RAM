@@ -261,7 +261,7 @@ const Team = () => {
         <Divider />
         <DialogContent>
           <Formik
-           
+            onSubmit={handleFormSubmit}
             initialValues={initialValues}
             validationSchema={checkoutSchema}
           >
