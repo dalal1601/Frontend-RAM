@@ -1,41 +1,62 @@
-import { Box, Typography, useTheme, Button, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { Box, Typography, useTheme, Button, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
-import { mockDataTeam } from "../../data/mockData";
-import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
-import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
-import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
-import Header from "../../components/Header";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Formik } from "formik";
 import * as yup from "yup";
 import TextField from "@mui/material/TextField";
+import CloseIcon from "@mui/icons-material/Close";
+import Header from "../../components/Header";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+
 
 const Team = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const [open, setOpen] = useState(false); 
-  const [error, setError] = useState(""); 
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/User');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('There was an error fetching the users:', error);
+        setError('Failed to fetch users. Please try again.');
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/User');
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const columns = [
     { field: "id", headerName: "ID" },
     {
-      field: "name",
-      headerName: "Name",
+      field: "nom_complet",
+      headerName: "Nom Complet",
       flex: 1,
       cellClassName: "name-column--cell",
-    },
-    {
-      field: "age",
-      headerName: "Age",
-      type: "number",
-      headerAlign: "left",
-      align: "left",
-    },
-    {
-      field: "phone",
-      headerName: "Phone Number",
-      flex: 1,
     },
     {
       field: "email",
@@ -43,68 +64,120 @@ const Team = () => {
       flex: 1,
     },
     {
-      field: "accessLevel",
-      headerName: "Access Level",
+      field: "tel",
+      headerName: "Téléphone",
       flex: 1,
-      renderCell: ({ row: { access } }) => (
-        <Box
-          width="60%"
-          m="0 auto"
-          p="5px"
-          display="flex"
-          justifyContent="center"
-          backgroundColor={
-            access === "admin"
-              ? colors.greenAccent[600]
-              : access === "manager"
-              ? colors.greenAccent[700]
-              : colors.greenAccent[700]
-          }
-          borderRadius="4px"
-        >
-          {access === "admin" && <AdminPanelSettingsOutlinedIcon />}
-          {access === "manager" && <SecurityOutlinedIcon />}
-          {access === "user" && <LockOpenOutlinedIcon />}
-          <Typography color={colors.grey[100]} sx={{ ml: "5px" }}>
-            {access}
-          </Typography>
+    },
+    {
+      field: "dateCreation",
+      headerName: "Date de création",
+      flex: 1,
+      valueGetter: (params) => new Date(params.row.dateCreation).toLocaleDateString(),
+    },
+    {
+      field: "role",
+      headerName: "Role",
+      flex: 1,
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      flex: 1,
+      renderCell: (params) => (
+        <Box display="flex" justifyContent="center" alignItems="center">
+          <IconButton
+            color="primary"
+            onClick={() => handleEdit(params.row)}
+            sx={{ mr: 1 }}
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            <DeleteIcon />
+          </IconButton>
         </Box>
       ),
     },
   ];
+  
 
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedUser(null); // Clear selected user when closing dialog
+  };
 
-  const handleFormSubmit = async (values) => {
+  const handleEdit = (user) => {
+    setSelectedUser(user);
+    handleOpen();
+  };
+
+  const handleDelete = async (id) => {
     try {
-      console.log('Submitting values:', values); 
-      
-      const response = await fetch('http://localhost:8080/User', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nom_complet: `${values.firstName} ${values.lastName}`,
-          email: values.email,
-          mdp: values.mdp,
-          tel: values.contact,
-          role: "AUDITEUR",
-        }),
+      const response = await fetch(`http://localhost:8080/User/${id}`, {
+        method: 'DELETE',
       });
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+      fetchUsers(); // Refresh user list
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setError('Failed to delete user. Please try again.');
+    }
+  };
+
+  const handleFormSubmit = async (values, { resetForm }) => {
+    try {
+      let response;
+      if (selectedUser) {
+        // Update existing user
+        response = await fetch(`http://localhost:8080/User/${selectedUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nom_complet: `${values.firstName} ${values.lastName}`,
+            email: values.email,
+            mdp: values.mdp,
+            tel: values.contact,
+            role: "AUDITEUR", // Adjust as needed
+          }),
+        });
+      } else {
+        // Create new user
+        response = await fetch('http://localhost:8080/User', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nom_complet: `${values.firstName} ${values.lastName}`,
+            email: values.email,
+            mdp: values.mdp,
+            tel: values.contact,
+            role: "AUDITEUR",
+          }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
 
       const data = await response.json();
-      console.log('User created:', data); 
+      console.log(selectedUser ? 'User updated:' : 'User created:', data);
       handleClose();
+      resetForm();
       setError(""); // Clear any previous errors
+      fetchUsers(); // Refresh user list
     } catch (error) {
-      console.error('There was an error creating the user:', error);
-      setError('Failed to create user. Please try again.'); 
+      console.error('There was an error:', error);
+      setError(selectedUser ? 'Failed to update user. Please try again.' : 'Failed to create user. Please try again.');
     }
   };
 
@@ -119,16 +192,15 @@ const Team = () => {
       .string()
       .matches(phoneRegExp, "Phone number is not valid")
       .required("required"),
-    address1: yup.string().required("required"),
-    address2: yup.string().required("required"),
+    mdp: yup.string().required("required"),
   });
 
   const initialValues = {
-    firstName: "",
-    lastName: "",
-    email: "",
-    contact: "",
-    mdp: "",
+    firstName: selectedUser ? selectedUser.nom_complet.split(' ')[0] : "",
+    lastName: selectedUser ? selectedUser.nom_complet.split(' ')[1] : "",
+    email: selectedUser ? selectedUser.email : "",
+    contact: selectedUser ? selectedUser.tel : "",
+    mdp: selectedUser ? selectedUser.mdp : "", 
   };
 
   return (
@@ -136,7 +208,7 @@ const Team = () => {
       <Header title="TEAM" subtitle="Managing the Team Members" />
       <Box display="flex" justifyContent="flex-end" m="20px 0">
         <Button variant="contained" color="primary" onClick={handleOpen}>
-          Créer un auditeur
+          Créer un Auditeur
         </Button>
       </Box>
       <Box
@@ -168,10 +240,25 @@ const Team = () => {
           },
         }}
       >
-        <DataGrid checkboxSelection rows={mockDataTeam} columns={columns} />
+        <DataGrid rows={users} columns={columns} />
       </Box>
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Create a New Auditor</DialogTitle>
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {selectedUser ? "Edit Auditor" : "Create Auditor"}
+          <IconButton
+            aria-label="close"
+            onClick={handleClose}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <Divider />
         <DialogContent>
           <Formik
             onSubmit={handleFormSubmit}
@@ -189,54 +276,36 @@ const Team = () => {
               <form onSubmit={handleSubmit}>
                 <Box
                   display="grid"
-                  gap="30px"
-                  gridTemplateColumns="repeat(4, minmax(0, 1fr))"
-                  sx={{
-                    "& > div": { gridColumn: "span 4" },
-                  }}
+                  gap="20px"
+                  gridTemplateColumns="repeat(2, 1fr)"
                 >
                   <TextField
                     fullWidth
-                    variant="filled"
+                    variant="outlined"
                     type="text"
-                    label="First Name"
+                    label="Prénom"
                     onBlur={handleBlur}
                     onChange={handleChange}
                     value={values.firstName}
                     name="firstName"
                     error={!!touched.firstName && !!errors.firstName}
                     helperText={touched.firstName && errors.firstName}
-                    sx={{ gridColumn: "span 2" }}
                   />
                   <TextField
                     fullWidth
-                    variant="filled"
+                    variant="outlined"
                     type="text"
-                    label="Last Name"
+                    label="Nom"
                     onBlur={handleBlur}
                     onChange={handleChange}
                     value={values.lastName}
                     name="lastName"
                     error={!!touched.lastName && !!errors.lastName}
                     helperText={touched.lastName && errors.lastName}
-                    sx={{ gridColumn: "span 2" }}
                   />
                   <TextField
                     fullWidth
-                    variant="filled"
-                    type="text"
-                    label="Telephone"
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    value={values.contact}
-                    name="contact"
-                    error={!!touched.contact && !!errors.contact}
-                    helperText={touched.contact && errors.contact}
-                    sx={{ gridColumn: "span 4" }}
-                  />
-                  <TextField
-                    fullWidth
-                    variant="filled"
+                    variant="outlined"
                     type="text"
                     label="Email"
                     onBlur={handleBlur}
@@ -245,11 +314,10 @@ const Team = () => {
                     name="email"
                     error={!!touched.email && !!errors.email}
                     helperText={touched.email && errors.email}
-                    sx={{ gridColumn: "span 4" }}
                   />
                   <TextField
                     fullWidth
-                    variant="filled"
+                    variant="outlined"
                     type="password"
                     label="Mot de passe"
                     onBlur={handleBlur}
@@ -258,16 +326,28 @@ const Team = () => {
                     name="mdp"
                     error={!!touched.mdp && !!errors.mdp}
                     helperText={touched.mdp && errors.mdp}
-                    sx={{ gridColumn: "span 4" }}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="outlined"
+                    type="text"
+                    label="Téléphone"
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                    value={values.contact}
+                    name="contact"
+                    error={!!touched.contact && !!errors.contact}
+                    helperText={touched.contact && errors.contact}
+                    sx={{ gridColumn: "span 2" }}
                   />
                 </Box>
-                <Box display="flex" justifyContent="end" mt="20px">
-                  <Button type="submit" color="secondary" variant="contained">
-                    Create New User
+                <Box display="flex" justifyContent="flex-end" mt="20px">
+                  <Button type="submit" color="primary" variant="contained">
+                    {selectedUser ? "Update User" : "Créer l'auditeur"}
                   </Button>
                 </Box>
                 {error && (
-                  <Box mt="20px" color="red">
+                  <Box mt="20px" color="error.main" textAlign="center">
                     <Typography>{error}</Typography>
                   </Box>
                 )}
@@ -275,11 +355,7 @@ const Team = () => {
             )}
           </Formik>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} color="primary">
-            Cancel
-          </Button>
-        </DialogActions>
+        
       </Dialog>
     </Box>
   );
