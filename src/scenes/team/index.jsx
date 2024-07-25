@@ -341,15 +341,9 @@ const Team = () => {
                     sx={{ gridColumn: "span 2" }}
                   />
                 </Box>
-<<<<<<< HEAD
                 <Box display="flex" justifyContent="flex-end" mt="20px">
                   <Button type="submit" color="primary" variant="contained">
                     {selectedUser ? "Update User" : "Créer l'auditeur"}
-=======
-                <Box display="flex" justifyContent="end" mt="20px">
-                  <Button type="submit" color="secondary" variant="contained"  onClick={handleFormSubmit}>
-                    Create New User
->>>>>>> 535c9c3acaeaa518b727f06a73e27cc04f2a93fb
                   </Button>
                 </Box>
                 {error && (
