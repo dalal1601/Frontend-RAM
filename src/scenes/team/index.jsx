@@ -174,7 +174,7 @@ const Team = () => {
         <DialogTitle>Create a New Auditor</DialogTitle>
         <DialogContent>
           <Formik
-            onSubmit={handleFormSubmit}
+           
             initialValues={initialValues}
             validationSchema={checkoutSchema}
           >
@@ -262,7 +262,7 @@ const Team = () => {
                   />
                 </Box>
                 <Box display="flex" justifyContent="end" mt="20px">
-                  <Button type="submit" color="secondary" variant="contained">
+                  <Button type="submit" color="secondary" variant="contained"  onClick={handleFormSubmit}>
                     Create New User
                   </Button>
                 </Box>
