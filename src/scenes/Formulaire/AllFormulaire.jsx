@@ -6,7 +6,7 @@ import Header from "../../components/Header";
 import { useNavigate } from "react-router-dom";
 
 const AllFormulaire = () => {
-  const [Formulaire, setFormulaire] = useState([]);
+  const [formulaires, setFormulaires] = useState([]);
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
@@ -41,18 +41,35 @@ const AllFormulaire = () => {
         }
       });
       if (!response.ok) {
-        throw new Error("Failed to fetch Formulaire");
+        throw new Error("Failed to fetch formulaires");
       }
       const data = await response.json();
-      setFormulaire(data);
+      setFormulaires(data);
     } catch (error) {
-      console.error("Error fetching Formulaire:", error);
+      console.error("Error fetching formulaires:", error);
     }
   };
 
   return (
     <Box m="20px">
-      <Header title="FORMULAIRE" subtitle="Gérer vos formulaires" />
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Header title="FORMULAIRE" subtitle="Gérer vos formulaires" />
+        <Button
+          variant="contained"
+          sx={{
+            backgroundColor: '#C2002F',
+            '&:hover': {
+              backgroundColor: '#A5002A', // Une teinte légèrement plus foncée pour l'effet hover
+            },
+            '&:disabled': {
+              backgroundColor: '#FFB3B3', // Une teinte plus claire pour l'état désactivé
+            }
+          }}
+          onClick={() => navigate('/AuditForm')}
+        >
+          Créer un formulaire
+        </Button>
+      </Box>
       <Box
         m="40px 0 0 0"
         height="75vh"
@@ -83,7 +100,7 @@ const AllFormulaire = () => {
         }}
       >
         <DataGrid
-          rows={Formulaire}
+          rows={formulaires}
           columns={columns}
           components={{
             Toolbar: GridToolbar,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams,useNavigate } from 'react-router-dom';
 import { 
   Table, 
   TableBody, 
@@ -13,7 +13,9 @@ import {
   Box,
   Button,
   IconButton,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowDropDownCircleIcon from '@mui/icons-material/ArrowDropDownCircle';
@@ -47,7 +49,10 @@ const FormulaireDetail = () => {
   const [formulaire, setFormulaire] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const { id } = useParams();
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     fetchFormulaireDetail();
@@ -76,44 +81,93 @@ const FormulaireDetail = () => {
   };
 
   const addTextRow = (sectionIndex) => {
-    const newFormulaire = { ...formulaire };
-    newFormulaire.sectionList[sectionIndex].regles.push({ description: '' });
-    setFormulaire(newFormulaire);
+    setFormulaire(prevFormulaire => {
+      const newFormulaire = { ...prevFormulaire };
+      newFormulaire.sectionList[sectionIndex].regles.push({ description: '' });
+      return newFormulaire;
+    });
+  };
+  
+  const removeSection = (sectionIndex) => {
+    setFormulaire(prevFormulaire => {
+      const newFormulaire = { ...prevFormulaire };
+      if (newFormulaire.sectionList.length > 1) {
+        newFormulaire.sectionList.splice(sectionIndex, 1);
+      } else {
+        setSnackbar({ open: true, message: "Vous ne pouvez pas supprimer la dernière section", severity: 'warning' });
+      }
+      return newFormulaire;
+    });
   };
 
   const addSectionRow = (sectionIndex) => {
-    const newFormulaire = { ...formulaire };
-    newFormulaire.sectionList.splice(sectionIndex + 1, 0, { description: '', regles: [] });
-    setFormulaire(newFormulaire);
+    setFormulaire(prevFormulaire => {
+      const newFormulaire = { ...prevFormulaire };
+      newFormulaire.sectionList.splice(sectionIndex + 1, 0, { description: '', regles: [] });
+      return newFormulaire;
+    });
   };
 
   const removeNextSection = (sectionIndex) => {
-    const newFormulaire = { ...formulaire };
-    if (sectionIndex < newFormulaire.sectionList.length - 1) {
-      newFormulaire.sectionList.splice(sectionIndex + 1, 1);
-      setFormulaire(newFormulaire);
-    }
+    setFormulaire(prevFormulaire => {
+      const newFormulaire = { ...prevFormulaire };
+      if (sectionIndex < newFormulaire.sectionList.length - 1) {
+        newFormulaire.sectionList.splice(sectionIndex + 1, 1);
+      }
+      return newFormulaire;
+    });
   };
 
   const removeLastTextRow = (sectionIndex) => {
-    const newFormulaire = { ...formulaire };
-    if (newFormulaire.sectionList[sectionIndex].regles.length > 0) {
-      newFormulaire.sectionList[sectionIndex].regles.pop();
-      setFormulaire(newFormulaire);
-    }
+    setFormulaire(prevFormulaire => {
+      const newFormulaire = { ...prevFormulaire };
+      if (newFormulaire.sectionList[sectionIndex].regles.length > 0) {
+        newFormulaire.sectionList[sectionIndex].regles.pop();
+      }
+      return newFormulaire;
+    });
   };
+  
 
   const handleContentChange = (sectionIndex, regleIndex, newContent) => {
-    const newFormulaire = { ...formulaire };
-    if (regleIndex === -1) {
-      newFormulaire.sectionList[sectionIndex].description = newContent;
-    } else {
-      newFormulaire.sectionList[sectionIndex].regles[regleIndex].description = newContent;
+    setFormulaire(prevFormulaire => {
+      const newFormulaire = { ...prevFormulaire };
+      if (regleIndex === -1) {
+        newFormulaire.sectionList[sectionIndex].description = newContent;
+      } else {
+        newFormulaire.sectionList[sectionIndex].regles[regleIndex].description = newContent;
+      }
+      return newFormulaire;
+    });
+  };
+
+
+  const handleFormulaireNameChange = (newName) => {
+    setFormulaire(prevFormulaire => ({
+      ...prevFormulaire,
+      nom: newName
+    }));
+  };
+
+  const isFormValid = () => {
+    if (!formulaire.nom) return false;
+    for (const section of formulaire.sectionList) {
+      if (!section.description) return false;
+      if (section.regles.length === 0) return false; // Vérifie qu'il y a au moins une règle
+      for (const regle of section.regles) {
+        if (!regle.description) return false;
+      }
     }
-    setFormulaire(newFormulaire);
+    return true;
   };
 
   const saveFormulaire = async () => {
+
+    if (!isFormValid()) {
+        setSnackbar({ open: true, message: "Veuillez remplir tous les champs obligatoires", severity: 'error' });
+        return;
+      }
+
     try {
       const response = await fetch(`http://localhost:8080/Formulaire/${id}`, {
         method: 'PUT',
@@ -125,45 +179,40 @@ const FormulaireDetail = () => {
       if (!response.ok) {
         throw new Error("Failed to update Formulaire");
       }
+      const updatedFormulaire = await response.json();
+      setFormulaire(updatedFormulaire);
+      setSnackbar({ open: true, message: 'Formulaire mis à jour avec succès', severity: 'success' });
+    
+        navigate('/formulaires');  // Assurez-vous que ce chemin correspond à votre route pour la liste des formulaires
+      
       console.log('Formulaire mis à jour avec succès');
     } catch (error) {
       console.error('Erreur lors de la mise à jour du formulaire:', error);
     }
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <CircularProgress />;
+  if (error) return <Typography color="error">{error}</Typography>;
+  if (!formulaire) return <Typography>Aucun formulaire trouvé.</Typography>;
 
-  if (error) {
-    return (
-      <Box m="20px">
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
-
-  if (!formulaire) {
-    return (
-      <Box m="20px">
-        <Typography>Aucun formulaire trouvé.</Typography>
-      </Box>
-    );
-  }
-
+ 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden', padding: 2 }}>
-      <Header title={formulaire.nom} subtitle="Détails du formulaire" />
+      <Header title="Détails du formulaire" subtitle="Modifier votre formulaire" />
+      
+      <TextField 
+        label="Nom du formulaire"
+        value={formulaire.nom}
+        onChange={(e) => handleFormulaireNameChange(e.target.value)}
+        fullWidth
+        margin="normal"
+      />
       
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 700 }} aria-label="customized table">
           <TableHead>
             <TableRow>
-              <StyledTableCell>{formulaire.nom}</StyledTableCell>
+              <StyledTableCell>Sections et Règles</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -177,6 +226,8 @@ const FormulaireDetail = () => {
                           value={section.description}
                           onChange={(e) => handleContentChange(sectionIndex, -1, e.target.value)}
                           variant="standard"
+                          placeholder="Nom de la section"
+                          error={!section.description}
                         />
                         <IconButton onClick={() => addTextRow(sectionIndex)}>
                           <ArrowDropDownCircleIcon fontSize='large' sx={{ color: '#C2002F' }} />
@@ -189,7 +240,7 @@ const FormulaireDetail = () => {
                         <IconButton onClick={() => addSectionRow(sectionIndex)}>  
                           <AddCircleIcon fontSize='large' sx={{ color: '#C2002F' }} />
                         </IconButton>
-                        <IconButton onClick={() => removeNextSection(sectionIndex)}>
+                        <IconButton onClick={() => removeSection(sectionIndex)}>
                           <RemoveCircleIcon fontSize='large' sx={{ color: '#C2002F' }}/>
                         </IconButton>
                       </Box>
@@ -204,6 +255,8 @@ const FormulaireDetail = () => {
                         onChange={(e) => handleContentChange(sectionIndex, regleIndex, e.target.value)}
                         fullWidth
                         variant="standard"
+                        placeholder="Description de la règle"
+                        error={!regle.description}
                       />
                     </StyledTableCell>
                   </StyledTableRow>
@@ -213,28 +266,33 @@ const FormulaireDetail = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '20px',
-        }}
-      >
-        <Button
-          sx={{
-            padding: '10px 30px',
-            color: 'white',
-            backgroundColor: '#C2002F',
-            '&:hover': {
-              backgroundColor: '#C2002F', 
-            },
-          }}
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+      <Button
           variant="contained"
+          sx={{
+    backgroundColor: '#C2002F',
+    '&:hover': {
+      backgroundColor: '#A5002A', // Une teinte légèrement plus foncée pour l'effet hover
+    },
+    '&:disabled': {
+      backgroundColor: '#FFB3B3', // Une teinte plus claire pour l'état désactivé
+    }
+  }}
           onClick={saveFormulaire}
+          disabled={!isFormValid()}
         >
           Enregistrer
         </Button>
       </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 };

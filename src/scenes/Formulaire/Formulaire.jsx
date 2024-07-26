@@ -11,7 +11,8 @@ import {
   Typography,
   Box,
   Button,
-  IconButton
+  IconButton,
+  Snackbar
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowDropDownCircleIcon from '@mui/icons-material/ArrowDropDownCircle';
@@ -19,8 +20,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
 import Alert from '@mui/material/Alert';
-
-
+import { useNavigate } from 'react-router-dom';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   '&.MuiTableCell-head': {
@@ -48,6 +48,8 @@ const AuditForm = () => {
   const [rows, setRows] = useState([
     { type: 'section', content: '' }
   ]);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const addTextRow = (sectionIndex) => {
     const newRows = [...rows];
@@ -104,8 +106,52 @@ const AuditForm = () => {
     setRows(newRows);
   };
 
+  const isFormValid = () => {
+    if (!formName) {
+      setError("Le nom du formulaire est obligatoire.");
+      return false;
+    }
+    
+    let hasSectionWithRules = false;
+    
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].type === 'section') {
+        if (!rows[i].content) {
+          setError(`La section ${i + 1} n'a pas de nom.`);
+          return false;
+        }
+        let hasRules = false;
+        for (let j = i + 1; j < rows.length && rows[j].type !== 'section'; j++) {
+          if (rows[j].type === 'question') {
+            if (!rows[j].content) {
+              setError(`La règle dans la section "${rows[i].content}" n'a pas de contenu.`);
+              return false;
+            }
+            hasRules = true;
+          }
+        }
+        if (!hasRules) {
+          setError(`La section "${rows[i].content}" n'a pas de règles.`);
+          return false;
+        }
+        hasSectionWithRules = true;
+      }
+    }
+
+    if (!hasSectionWithRules) {
+      setError("Le formulaire doit avoir au moins une section avec des règles.");
+      return false;
+    }
+
+    setError('');
+    return true;
+  };
 
   const saveFormulaire = async () => {
+    if (!isFormValid()) {
+      return;
+    }
+
     try {
       // Sauvegarder les règles
       const regles = rows.filter(row => row.type === 'question').map(row => ({ description: row.content }));
@@ -156,10 +202,11 @@ const AuditForm = () => {
       }).then(response => response.json());
 
       console.log('Formulaire sauvegardé avec succès:', savedFormulaire);
+      navigate('/formulaires');
     } catch (error) {
       console.error('Erreur lors de la sauvegarde du formulaire:', error);
+      setError('Une erreur est survenue lors de la sauvegarde du formulaire.');
     }
-  
   };
 
   return (
@@ -184,6 +231,8 @@ const AuditForm = () => {
         label="nom du formulaire"
         value={formName}
         onChange={(e) => setFormName(e.target.value)}
+        error={!formName}
+        helperText={!formName ? "Le nom du formulaire est obligatoire" : ""}
         sx={{
           marginLeft: "500px",
           marginBottom: "20px",
@@ -200,7 +249,7 @@ const AuditForm = () => {
         <Table sx={{ minWidth: 700 }} aria-label="customized table">
           <TableHead>
             <TableRow>
-              <StyledTableCell>{formName }</StyledTableCell>
+              <StyledTableCell>{formName}</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -216,6 +265,7 @@ const AuditForm = () => {
                             onChange={(e) => handleContentChange(index, e.target.value)}
                             variant="standard"
                             placeholder="Entrez le nom de la section"
+                            error={!row.content}
                           />
                           <IconButton onClick={() => addTextRow(index)}>
                             <ArrowDropDownCircleIcon fontSize='large' sx={{ color: '#C2002F' }} />
@@ -244,6 +294,7 @@ const AuditForm = () => {
                         fullWidth
                         variant="standard"
                         placeholder="Entrez votre question"
+                        error={!row.content}
                       />
                     </StyledTableCell>
                   </StyledTableRow>
@@ -254,27 +305,32 @@ const AuditForm = () => {
         </Table>
       </TableContainer>
       <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        padding: '20px', // Pour ajouter un peu de marge autour du bouton
-      }}
-    >
-      <Button
         sx={{
-          padding: '10px 30px',
-          color: 'white',
-          backgroundColor: '#C2002F',
-          '&:hover': {
-            backgroundColor: '#C2002F', 
-          },
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: '20px',
         }}
-        variant="contained"
-        onClick={saveFormulaire}
       >
-        Enregistrer
-      </Button>
-    </Box>
+        <Button
+          sx={{
+            padding: '10px 30px',
+            color: 'white',
+            backgroundColor: '#C2002F',
+            '&:hover': {
+              backgroundColor: '#C2002F', 
+            },
+          }}
+          variant="contained"
+          onClick={saveFormulaire}
+        >
+          Enregistrer
+        </Button>
+      </Box>
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
+        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 };
