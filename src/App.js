@@ -12,6 +12,7 @@ import Line from "./scenes/line";
 import Pie from "./scenes/pie";
 import FAQ from "./scenes/faq";
 import AuditForm from "./scenes/Formulaire/Formulaire"
+import FormulaireDetail from "./scenes/Formulaire/FormulaireDetail"
 import AllFormulaire from "./scenes/Formulaire/AllFormulaire"
 import Geography from "./scenes/geography";
 import { CssBaseline, ThemeProvider } from "@mui/material";
@@ -44,6 +45,7 @@ function App() {
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/geography" element={<Geography />} />
               <Route path="/formulaires" element={<AllFormulaire />} />
+              <Route path="/formulaire/:id" element={<FormulaireDetail/>} />
               </Routes>
           </main>
         </div>
