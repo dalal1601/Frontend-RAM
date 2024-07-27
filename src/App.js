@@ -18,6 +18,7 @@ import Geography from "./scenes/geography";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import Calendar from "./scenes/calendar/calendar";
+import Reponse from "./scenes/Reponse/Reponse"; 
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -46,6 +47,7 @@ function App() {
               <Route path="/geography" element={<Geography />} />
               <Route path="/formulaires" element={<AllFormulaire />} />
               <Route path="/formulaire/:id" element={<FormulaireDetail/>} />
+              <Route path="/reponse" element={<Reponse />} /> 
               </Routes>
           </main>
         </div>
