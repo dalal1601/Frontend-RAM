@@ -13,10 +13,22 @@ import {
   Snackbar,
   Alert,
   Checkbox,
-  Button
+  Button,
+  LinearProgress,
+  Grid
 } from '@mui/material';
+import { styled, useTheme } from '@mui/system';
+import { useMediaQuery } from '@mui/material';
+
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  fontWeight: 'bold',
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.common.white,
+}));
 
 const Reponse = () => {
+  const theme = useTheme();
+  const isDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [formulaire, setFormulaire] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,22 +36,26 @@ const Reponse = () => {
   const [checkedItems, setCheckedItems] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const auditId = '66a4395fc079a82b62de68ba';
+  const auditId = '66a547c4551a436bdb5c66f2';
 
   const fetchFormulaire = async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching formulaire...');
-      const response = await fetch('http://localhost:8080/Formulaire/66a41899c079a82b62de68b9');
+      const auditResponse = await fetch(`http://localhost:8080/Audit/${auditId}`);
+      if (!auditResponse.ok) {
+        throw new Error(`Failed to fetch audit: ${auditResponse.statusText}`);
+      }
+      const auditData = await auditResponse.json();
+      const formulaireId = auditData.formulaire.id;
+
+      const response = await fetch(`http://localhost:8080/Formulaire/${formulaireId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch formulaire: ${response.statusText}`);
       }
       const data = await response.json();
-      console.log('Formulaire data:', data);
       setFormulaire(data);
     } catch (error) {
-      console.error('Error fetching formulaire:', error);
       setError(`Une erreur est survenue lors du chargement des détails du formulaire. ${error.message}`);
     } finally {
       setLoading(false);
@@ -86,52 +102,74 @@ const Reponse = () => {
       }
 
       const result = await response.json();
-      console.log('Data saved:', result);
       setSnackbar({ open: true, message: 'Données enregistrées avec succès!', severity: 'success' });
     } catch (error) {
-      console.error('Error saving data:', error);
       setSnackbar({ open: true, message: 'Erreur lors de l\'enregistrement des données.', severity: 'error' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading) return <CircularProgress />;
+  if (loading) return <LinearProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
   if (!formulaire) return <Typography>Aucun formulaire trouvé.</Typography>;
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden', padding: 2 }}>
+    <Paper
+      sx={{
+        width: '100%',
+        overflow: 'hidden',
+        padding: 3,
+        margin: 'auto',
+        maxWidth: 1000,
+        backgroundColor: theme.palette.background.paper,
+        color: theme.palette.text.primary,
+      }}
+    >
       <Typography
         variant="h1"
         component="h1"
         sx={{
-          fontSize: '2rem',
+          fontSize: '2.5rem',
           fontWeight: 'bold',
           textAlign: 'center',
           marginBottom: '20px',
-          width: '100%',
           color: '#C2002F',
         }}
       >
         Détails du Formulaire
       </Typography>
 
-      <TableContainer component={Paper}>
+      <Typography
+        variant="h2"
+        component="h2"
+        sx={{
+          fontSize: '1.8rem',
+          textAlign: 'center',
+          marginBottom: '20px',
+          color: theme.palette.text.primary,
+        }}
+      >
+        Nom: {formulaire.nom}
+      </Typography>
+
+      <TableContainer component={Paper} sx={{ marginBottom: '20px' }}>
         <Table sx={{ minWidth: 700 }} aria-label="form details">
           <TableHead>
             <TableRow>
-              <TableCell>Sections</TableCell>
-              <TableCell>Règles</TableCell>
-              <TableCell>Conform</TableCell>
-              <TableCell>Non-Conform</TableCell>
+              <StyledTableCell>Sections</StyledTableCell>
+              <StyledTableCell>Règles</StyledTableCell>
+              <StyledTableCell>Conform</StyledTableCell>
+              <StyledTableCell>Non-Conform</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {formulaire.sectionList.map((section, sectionIndex) => (
               <React.Fragment key={sectionIndex}>
                 <TableRow>
-                  <TableCell colSpan={4} sx={{ fontWeight: 'bold' }}>{section.description}</TableCell>
+                  <TableCell colSpan={4} sx={{ fontWeight: 'bold', backgroundColor: theme.palette.action.hover }}>
+                    {section.description}
+                  </TableCell>
                 </TableRow>
                 {section.regles.map((regle, regleIndex) => (
                   <TableRow key={regleIndex}>
@@ -158,7 +196,8 @@ const Reponse = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+
+      <Grid container justifyContent="center">
         <Button
           variant="contained"
           sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}
@@ -167,7 +206,8 @@ const Reponse = () => {
         >
           {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Enregistrer'}
         </Button>
-      </Box>
+      </Grid>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
