@@ -96,7 +96,7 @@ const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems
           Annuler
         </Button>
         <Button onClick={onConfirm}  variant="contained"  sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
-          Enregistrer
+          Confirmer
         </Button>
       </DialogActions>
     </StyledDialog>
