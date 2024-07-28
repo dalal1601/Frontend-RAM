@@ -15,7 +15,11 @@ import {
   Checkbox,
   Button,
   LinearProgress,
-  Grid
+  Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { styled, useTheme } from '@mui/system';
 import { useMediaQuery } from '@mui/material';
@@ -26,66 +30,174 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   color: theme.palette.common.white,
 }));
 
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialogTitle-root': {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.common.white,
+    fontSize: '1.25rem',
+    padding: theme.spacing(2),
+  },
+  '& .MuiDialogContent-root': {
+    padding: theme.spacing(3),
+  },
+  '& .MuiDialogActions-root': {
+    padding: theme.spacing(2),
+  },
+}));
+
+const SectionRow = styled(TableRow)(({ theme }) => ({
+  backgroundColor: theme.palette.grey[200],
+  '& > td': {
+    fontWeight: 'bold',
+    fontSize: '1.1rem',
+    padding: theme.spacing(1, 2),
+  },
+}));
+
+const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems }) => {
+  const theme = useTheme();
+  
+  return (
+    <StyledDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Confirmation des réponses</DialogTitle>
+      <DialogContent>
+        <TableContainer component={Paper} sx={{ marginTop: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <StyledTableCell>Règle</StyledTableCell>
+                <StyledTableCell align="center">Réponse</StyledTableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {formulaire.sectionList.map((section, sectionIndex) => (
+                <React.Fragment key={sectionIndex}>
+                  <SectionRow>
+                    <TableCell colSpan={2}>{section.description}</TableCell>
+                  </SectionRow>
+                  {section.regles.map((regle, regleIndex) => (
+                    <TableRow key={`${sectionIndex}-${regleIndex}`}>
+                      <TableCell>{regle.description}</TableCell>
+                      <TableCell align="center">
+                        <Typography color={checkedItems[regle.id] === 'Conform' ? 'success.main' : 'error.main'} fontWeight="bold">
+                          {checkedItems[regle.id] === 'Conform' ? 'Conforme' : 'Non-Conforme'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="primary">
+          Annuler
+        </Button>
+        <Button onClick={onConfirm}  variant="contained"  sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
+          Enregistrer
+        </Button>
+      </DialogActions>
+    </StyledDialog>
+  );
+};
+
 const Reponse = () => {
   const theme = useTheme();
   const isDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  const [audit, setAudit] = useState(null);
   const [formulaire, setFormulaire] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [checkedItems, setCheckedItems] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
-  const auditId = '66a547c4551a436bdb5c66f2';
+  const auditId = '66a623f195dcbf298b724519'; // Assurez-vous que cet ID est mis à jour correctement
 
-  const fetchFormulaire = async () => {
+  const fetchAuditAndFormulaire = async () => {
     try {
       setLoading(true);
       setError(null);
+      setCheckedItems({}); // Réinitialiser checkedItems
+
       const auditResponse = await fetch(`http://localhost:8080/Audit/${auditId}`);
       if (!auditResponse.ok) {
         throw new Error(`Failed to fetch audit: ${auditResponse.statusText}`);
       }
       const auditData = await auditResponse.json();
-      const formulaireId = auditData.formulaire.id;
+      setAudit(auditData);
 
-      const response = await fetch(`http://localhost:8080/Formulaire/${formulaireId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch formulaire: ${response.statusText}`);
+      const formulaireId = auditData.formulaire.id;
+      const formulaireResponse = await fetch(`http://localhost:8080/Formulaire/${formulaireId}`);
+      if (!formulaireResponse.ok) {
+        throw new Error(`Failed to fetch formulaire: ${formulaireResponse.statusText}`);
       }
-      const data = await response.json();
-      setFormulaire(data);
+      const formulaireData = await formulaireResponse.json();
+      setFormulaire(formulaireData);
+
+      console.log('Formulaire chargé:', formulaireData);
     } catch (error) {
-      setError(`Une erreur est survenue lors du chargement des détails du formulaire. ${error.message}`);
+      setError(`Une erreur est survenue lors du chargement des détails. ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchFormulaire();
-  }, []);
+    fetchAuditAndFormulaire();
+  }, [auditId]);
 
-  const handleCheckboxChange = (sectionIndex, regleIndex, value) => {
-    const key = `${sectionIndex}-${regleIndex}`;
-    setCheckedItems(prev => ({
-      ...prev,
-      [key]: prev[key] === value ? null : value,
-    }));
+  const handleCheckboxChange = (regleId, value) => {
+    setCheckedItems(prev => {
+      const newCheckedItems = {
+        ...prev,
+        [regleId]: value,
+      };
+      console.log('Checked items updated:', newCheckedItems);
+      return newCheckedItems;
+    });
   };
 
-  const handleSave = async () => {
-    setIsSubmitting(true);
-    const formattedData = formulaire.sectionList.flatMap((section, sectionIndex) =>
-      section.regles.map((regle, regleIndex) => ({
-        regle: { id: regle.id },
-        value: checkedItems[`${sectionIndex}-${regleIndex}`] === 'Conform'
-      }))
+  const isAllRulesAnswered = () => {
+    if (!formulaire) return false;
+    
+    const allRegleIds = formulaire.sectionList.flatMap(section => 
+      section.regles.map(regle => regle.id)
     );
+    
+    const answeredRegleIds = Object.keys(checkedItems);
+    
+    console.log('Toutes les règles:', allRegleIds);
+    console.log('Règles répondues:', answeredRegleIds);
+    
+    const allAnswered = allRegleIds.every(regleId => answeredRegleIds.includes(regleId));
+    console.log('Toutes les règles ont été répondues:', allAnswered);
+    
+    return allAnswered;
+  };
+
+  const handleSave = () => {
+    if (isAllRulesAnswered()) {
+      setOpenConfirmDialog(true);
+    } else {
+      setSnackbar({ open: true, message: 'Veuillez répondre à toutes les règles avant d\'enregistrer.', severity: 'warning' });
+    }
+  };
+
+  const handleConfirmSave = async () => {
+    setIsSubmitting(true);
+    setOpenConfirmDialog(false);
+    
+    const reponses = Object.entries(checkedItems).map(([regleId, value]) => ({
+      [regleId]: value === 'Conform'
+    }));
 
     const payload = {
       audit: { id: auditId },
-      reponses: formattedData,
+      reponses: reponses,
     };
 
     try {
@@ -98,13 +210,14 @@ const Reponse = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save data');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save data');
       }
 
       const result = await response.json();
       setSnackbar({ open: true, message: 'Données enregistrées avec succès!', severity: 'success' });
     } catch (error) {
-      setSnackbar({ open: true, message: 'Erreur lors de l\'enregistrement des données.', severity: 'error' });
+      setSnackbar({ open: true, message: `Erreur lors de l'enregistrement des données: ${error.message}`, severity: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +225,7 @@ const Reponse = () => {
 
   if (loading) return <LinearProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
-  if (!formulaire) return <Typography>Aucun formulaire trouvé.</Typography>;
+  if (!formulaire || !audit) return <Typography>Aucune donnée trouvée.</Typography>;
 
   return (
     <Paper
@@ -126,31 +239,12 @@ const Reponse = () => {
         color: theme.palette.text.primary,
       }}
     >
-      <Typography
-        variant="h1"
-        component="h1"
-        sx={{
-          fontSize: '2.5rem',
-          fontWeight: 'bold',
-          textAlign: 'center',
-          marginBottom: '20px',
-          color: '#C2002F',
-        }}
-      >
-        Détails du Formulaire
+      <Typography variant="h1" component="h1" sx={{ fontSize: '2.5rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px', color: '#C2002F' }}>
+        Détails de l'Audit
       </Typography>
 
-      <Typography
-        variant="h2"
-        component="h2"
-        sx={{
-          fontSize: '1.8rem',
-          textAlign: 'center',
-          marginBottom: '20px',
-          color: theme.palette.text.primary,
-        }}
-      >
-        Nom: {formulaire.nom}
+      <Typography variant="h2" component="h2" sx={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '20px', color: theme.palette.text.primary }}>
+        Formulaire: {formulaire.nom}
       </Typography>
 
       <TableContainer component={Paper} sx={{ marginBottom: '20px' }}>
@@ -159,8 +253,8 @@ const Reponse = () => {
             <TableRow>
               <StyledTableCell>Sections</StyledTableCell>
               <StyledTableCell>Règles</StyledTableCell>
-              <StyledTableCell>Conform</StyledTableCell>
-              <StyledTableCell>Non-Conform</StyledTableCell>
+              <StyledTableCell>Conforme</StyledTableCell>
+              <StyledTableCell>Non-Conforme</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -177,15 +271,15 @@ const Reponse = () => {
                     <TableCell>{regle.description}</TableCell>
                     <TableCell>
                       <Checkbox
-                        checked={checkedItems[`${sectionIndex}-${regleIndex}`] === 'Conform'}
-                        onChange={() => handleCheckboxChange(sectionIndex, regleIndex, 'Conform')}
+                        checked={checkedItems[regle.id] === 'Conform'}
+                        onChange={() => handleCheckboxChange(regle.id, 'Conform')}
                         color="primary"
                       />
                     </TableCell>
                     <TableCell>
                       <Checkbox
-                        checked={checkedItems[`${sectionIndex}-${regleIndex}`] === 'Non-Conform'}
-                        onChange={() => handleCheckboxChange(sectionIndex, regleIndex, 'Non-Conform')}
+                        checked={checkedItems[regle.id] === 'Non-Conform'}
+                        onChange={() => handleCheckboxChange(regle.id, 'Non-Conform')}
                         color="secondary"
                       />
                     </TableCell>
@@ -207,6 +301,14 @@ const Reponse = () => {
           {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Enregistrer'}
         </Button>
       </Grid>
+
+      <ConfirmationDialog
+        open={openConfirmDialog}
+        onClose={() => setOpenConfirmDialog(false)}
+        onConfirm={handleConfirmSave}
+        formulaire={formulaire}
+        checkedItems={checkedItems}
+      />
 
       <Snackbar
         open={snackbar.open}
