@@ -167,11 +167,7 @@ const Calendar = () => {
             interactionPlugin,
             listPlugin,
           ]}
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay,listMonth",
-          }}
+       
           initialView="dayGridMonth"
           editable={true}
           selectable={true}
