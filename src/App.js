@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
@@ -7,6 +7,7 @@ import Team from "./scenes/team";
 import Invoices from "./scenes/invoices";
 import Contacts from "./scenes/contacts";
 import Bar from "./scenes/bar";
+import LoadingAnimation from "./components/LoadingAnimation";
 import Form from "./scenes/form";
 import Line from "./scenes/line";
 import Pie from "./scenes/pie";
@@ -23,11 +24,24 @@ import Reponse from "./scenes/Reponse/Reponse";
 function App() {
   const [theme, colorMode] = useMode();
   const [isSidebar, setIsSidebar] = useState(true);
+  const [showLoading, setShowLoading] = useState(true);
+
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLoading(false);
+    }, 1700);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        {showLoading ? (
+          <LoadingAnimation />
+        ) : (
         <div className="app">
           <Sidebar isSidebar={isSidebar} />
           <main className="content">
@@ -51,6 +65,7 @@ function App() {
               </Routes>
           </main>
         </div>
+      )}
       </ThemeProvider>
     </ColorModeContext.Provider>
   );
