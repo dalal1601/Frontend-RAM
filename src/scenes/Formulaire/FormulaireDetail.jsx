@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams,useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Table, 
   TableBody, 
@@ -15,7 +15,8 @@ import {
   IconButton,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowDropDownCircleIcon from '@mui/icons-material/ArrowDropDownCircle';
@@ -26,23 +27,24 @@ import Header from "../../components/Header";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   '&.MuiTableCell-head': {
-    backgroundColor: theme.palette.common.black,
+    backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.common.black,
     color: theme.palette.common.white,
   },
   '&.MuiTableCell-body': {
     fontSize: 14,
+    backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[900] : theme.palette.common.white,
   },
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  backgroundColor: theme.palette.common.white,
+  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.common.white,
   '&:last-child td, &:last-child th': {
     border: 0,
   },
 }));
 
 const SectionRow = styled(TableRow)(({ theme }) => ({
-  backgroundColor: theme.palette.grey[200],
+  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[700] : theme.palette.grey[200],
 }));
 
 const FormulaireDetail = () => {
@@ -52,7 +54,7 @@ const FormulaireDetail = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const theme = useTheme();
 
   useEffect(() => {
     fetchFormulaireDetail();
@@ -83,11 +85,11 @@ const FormulaireDetail = () => {
   const addTextRow = (sectionIndex) => {
     setFormulaire(prevFormulaire => {
       const newFormulaire = { ...prevFormulaire };
-      newFormulaire.sectionList[sectionIndex].regles.push({ description: '' });
+      newFormulaire.sectionList[sectionIndex].regles.push({ description: '', actionCorrective: { description: '' } });
       return newFormulaire;
     });
   };
-  
+
   const removeSection = (sectionIndex) => {
     setFormulaire(prevFormulaire => {
       const newFormulaire = { ...prevFormulaire };
@@ -127,20 +129,22 @@ const FormulaireDetail = () => {
       return newFormulaire;
     });
   };
-  
 
-  const handleContentChange = (sectionIndex, regleIndex, newContent) => {
+  const handleContentChange = (sectionIndex, regleIndex, newContent, field) => {
     setFormulaire(prevFormulaire => {
       const newFormulaire = { ...prevFormulaire };
       if (regleIndex === -1) {
         newFormulaire.sectionList[sectionIndex].description = newContent;
       } else {
-        newFormulaire.sectionList[sectionIndex].regles[regleIndex].description = newContent;
+        if (field === 'description') {
+          newFormulaire.sectionList[sectionIndex].regles[regleIndex].description = newContent;
+        } else if (field === 'actionCorrective') {
+          newFormulaire.sectionList[sectionIndex].regles[regleIndex].actionCorrective.description = newContent;
+        }
       }
       return newFormulaire;
     });
   };
-
 
   const handleFormulaireNameChange = (newName) => {
     setFormulaire(prevFormulaire => ({
@@ -153,20 +157,19 @@ const FormulaireDetail = () => {
     if (!formulaire.nom) return false;
     for (const section of formulaire.sectionList) {
       if (!section.description) return false;
-      if (section.regles.length === 0) return false; // Vérifie qu'il y a au moins une règle
+      if (section.regles.length === 0) return false;
       for (const regle of section.regles) {
-        if (!regle.description) return false;
+        if (!regle.description || !regle.actionCorrective.description) return false;
       }
     }
     return true;
   };
 
   const saveFormulaire = async () => {
-
     if (!isFormValid()) {
-        setSnackbar({ open: true, message: "Veuillez remplir tous les champs obligatoires", severity: 'error' });
-        return;
-      }
+      setSnackbar({ open: true, message: "Veuillez remplir tous les champs obligatoires", severity: 'error' });
+      return;
+    }
 
     try {
       const response = await fetch(`http://localhost:8080/Formulaire/${id}`, {
@@ -182,10 +185,8 @@ const FormulaireDetail = () => {
       const updatedFormulaire = await response.json();
       setFormulaire(updatedFormulaire);
       setSnackbar({ open: true, message: 'Formulaire mis à jour avec succès', severity: 'success' });
-    
-        navigate('/formulaires');  // Assurez-vous que ce chemin correspond à votre route pour la liste des formulaires
-      
-      console.log('Formulaire mis à jour avec succès');
+
+      navigate('/formulaires');
     } catch (error) {
       console.error('Erreur lors de la mise à jour du formulaire:', error);
     }
@@ -195,9 +196,8 @@ const FormulaireDetail = () => {
   if (error) return <Typography color="error">{error}</Typography>;
   if (!formulaire) return <Typography>Aucun formulaire trouvé.</Typography>;
 
- 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden', padding: 2 }}>
+    <Paper sx={{ width: '100%', overflow: 'hidden', padding: 2, backgroundColor: theme.palette.background.paper }}>
       <Header title="Détails du formulaire" subtitle="Modifier votre formulaire" />
       
       <TextField 
@@ -243,20 +243,29 @@ const FormulaireDetail = () => {
                         <IconButton onClick={() => removeSection(sectionIndex)}>
                           <RemoveCircleIcon fontSize='large' sx={{ color: '#C2002F' }}/>
                         </IconButton>
+                        
                       </Box>
                     </Box>
                   </StyledTableCell>
                 </SectionRow>
                 {section.regles.map((regle, regleIndex) => (
                   <StyledTableRow key={regleIndex}>
-                    <StyledTableCell>
+                    <StyledTableCell component="th" scope="row">
                       <TextField
                         value={regle.description}
-                        onChange={(e) => handleContentChange(sectionIndex, regleIndex, e.target.value)}
-                        fullWidth
+                        onChange={(e) => handleContentChange(sectionIndex, regleIndex, e.target.value, 'description')}
                         variant="standard"
-                        placeholder="Description de la règle"
+                        placeholder="Règle"
                         error={!regle.description}
+                        fullWidth
+                      />
+                      <TextField
+                        value={regle.actionCorrective.description}
+                        onChange={(e) => handleContentChange(sectionIndex, regleIndex, e.target.value, 'actionCorrective')}
+                        variant="standard"
+                        placeholder="Action corrective"
+                        error={!regle.actionCorrective.description}
+                        fullWidth
                       />
                     </StyledTableCell>
                   </StyledTableRow>
@@ -266,30 +275,13 @@ const FormulaireDetail = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-      <Button
-          variant="contained"
-          sx={{
-    backgroundColor: '#C2002F',
-    '&:hover': {
-      backgroundColor: '#A5002A', // Une teinte légèrement plus foncée pour l'effet hover
-    },
-    '&:disabled': {
-      backgroundColor: '#FFB3B3', // Une teinte plus claire pour l'état désactivé
-    }
-  }}
-          onClick={saveFormulaire}
-          disabled={!isFormValid()}
-        >
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+        <Button onClick={saveFormulaire} variant="contained" sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A7001D' } }}>
           Enregistrer
         </Button>
       </Box>
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
           {snackbar.message}
         </Alert>
       </Snackbar>

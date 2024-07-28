@@ -1,30 +1,30 @@
 import React, { useState } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper, 
-  TextField, 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
   Typography,
   Box,
   Button,
   IconButton,
-  Snackbar
+  Snackbar,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import ArrowDropDownCircleIcon from '@mui/icons-material/ArrowDropDownCircle';
+import { styled, useTheme } from '@mui/material/styles';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
-import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
+import AddBoxIcon from '@mui/icons-material/AddBox';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Alert from '@mui/material/Alert';
 import { useNavigate } from 'react-router-dom';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   '&.MuiTableCell-head': {
-    backgroundColor: theme.palette.common.black,
+    backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[900] : theme.palette.common.black,
     color: theme.palette.common.white,
   },
   '&.MuiTableCell-body': {
@@ -33,21 +33,20 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  backgroundColor: theme.palette.common.white,
+  backgroundColor: theme.palette.background.paper,
   '&:last-child td, &:last-child th': {
     border: 0,
   },
 }));
 
 const SectionRow = styled(TableRow)(({ theme }) => ({
-  backgroundColor: theme.palette.grey[200],
+  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
 }));
 
 const AuditForm = () => {
+  const theme = useTheme();
   const [formName, setFormName] = useState('');
-  const [rows, setRows] = useState([
-    { type: 'section', content: '' }
-  ]);
+  const [rows, setRows] = useState([{ type: 'section', content: '' }]);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -57,7 +56,7 @@ const AuditForm = () => {
     while (insertIndex < newRows.length && newRows[insertIndex].type !== 'section') {
       insertIndex++;
     }
-    newRows.splice(insertIndex, 0, { type: 'question', content: '' });
+    newRows.splice(insertIndex, 0, { type: 'question', content: '', correctiveAction: '' });
     setRows(newRows);
   };
 
@@ -71,49 +70,36 @@ const AuditForm = () => {
     setRows(newRows);
   };
 
-  const removeNextSection = (sectionIndex) => {
+  const removeSectionRow = (sectionIndex) => {
     const newRows = [...rows];
-    let nextSectionIndex = sectionIndex + 1;
-    while (nextSectionIndex < newRows.length && newRows[nextSectionIndex].type !== 'section') {
-      nextSectionIndex++;
+    let endIndex = sectionIndex + 1;
+    while (endIndex < newRows.length && newRows[endIndex].type !== 'section') {
+      endIndex++;
     }
-    if (nextSectionIndex < newRows.length) {
-      let endIndex = nextSectionIndex + 1;
-      while (endIndex < newRows.length && newRows[endIndex].type !== 'section') {
-        endIndex++;
-      }
-      newRows.splice(nextSectionIndex, endIndex - nextSectionIndex);
-      setRows(newRows);
-    }
+    newRows.splice(sectionIndex, endIndex - sectionIndex);
+    setRows(newRows);
   };
 
-  const removeLastTextRow = (sectionIndex) => {
+  const removeTextRow = (rowIndex) => {
     const newRows = [...rows];
-    let lastQuestionIndex = -1;
-    for (let i = sectionIndex + 1; i < newRows.length; i++) {
-      if (newRows[i].type === 'section') break;
-      if (newRows[i].type === 'question') lastQuestionIndex = i;
-    }
-    if (lastQuestionIndex !== -1) {
-      newRows.splice(lastQuestionIndex, 1);
-      setRows(newRows);
-    }
+    newRows.splice(rowIndex, 1);
+    setRows(newRows);
   };
 
-  const handleContentChange = (index, newContent) => {
+  const handleContentChange = (index, field, newContent) => {
     const newRows = [...rows];
-    newRows[index].content = newContent;
+    newRows[index][field] = newContent;
     setRows(newRows);
   };
 
   const isFormValid = () => {
     if (!formName) {
-      setError("Le nom du formulaire est obligatoire.");
+      setError('Le nom du formulaire est obligatoire.');
       return false;
     }
-    
+
     let hasSectionWithRules = false;
-    
+
     for (let i = 0; i < rows.length; i++) {
       if (rows[i].type === 'section') {
         if (!rows[i].content) {
@@ -123,8 +109,8 @@ const AuditForm = () => {
         let hasRules = false;
         for (let j = i + 1; j < rows.length && rows[j].type !== 'section'; j++) {
           if (rows[j].type === 'question') {
-            if (!rows[j].content) {
-              setError(`La règle dans la section "${rows[i].content}" n'a pas de contenu.`);
+            if (!rows[j].content || !rows[j].correctiveAction) {
+              setError(`La règle dans la section "${rows[i].content}" n'a pas de contenu ou d'action corrective.`);
               return false;
             }
             hasRules = true;
@@ -139,7 +125,7 @@ const AuditForm = () => {
     }
 
     if (!hasSectionWithRules) {
-      setError("Le formulaire doit avoir au moins une section avec des règles.");
+      setError('Le formulaire doit avoir au moins une section avec des règles.');
       return false;
     }
 
@@ -154,16 +140,22 @@ const AuditForm = () => {
 
     try {
       // Sauvegarder les règles
-      const regles = rows.filter(row => row.type === 'question').map(row => ({ description: row.content }));
-      const savedRegles = await Promise.all(regles.map(regle => 
-        fetch('http://localhost:8080/Regle', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(regle),
-        }).then(response => response.json())
-      ));
+      const regles = rows.filter((row) => row.type === 'question').map((row) => ({
+        description: row.content,
+        actionCorrective: { description: row.correctiveAction },
+      }));
+
+      const savedRegles = await Promise.all(
+        regles.map((regle) =>
+          fetch('http://localhost:8080/Regle', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(regle),
+          }).then((response) => response.json())
+        )
+      );
 
       // Sauvegarder les sections
       let sectionIndex = -1;
@@ -177,20 +169,22 @@ const AuditForm = () => {
         return acc;
       }, []);
 
-      const savedSections = await Promise.all(sections.map(section => 
-        fetch('http://localhost:8080/Section', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(section),
-        }).then(response => response.json())
-      ));
+      const savedSections = await Promise.all(
+        sections.map((section) =>
+          fetch('http://localhost:8080/Section', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(section),
+          }).then((response) => response.json())
+        )
+      );
 
       // Sauvegarder le formulaire
       const formulaire = {
         nom: formName,
-        sectionList: savedSections
+        sectionList: savedSections,
       };
 
       const savedFormulaire = await fetch('http://localhost:8080/Formulaire', {
@@ -199,7 +193,7 @@ const AuditForm = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formulaire),
-      }).then(response => response.json());
+      }).then((response) => response.json());
 
       console.log('Formulaire sauvegardé avec succès:', savedFormulaire);
       navigate('/formulaires');
@@ -210,41 +204,49 @@ const AuditForm = () => {
   };
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden', padding: 2 }}>
-      <Typography 
-        variant="h1" 
+    <Paper
+      sx={{
+        width: '100%',
+        overflow: 'hidden',
+        padding: 2,
+        backgroundColor: theme.palette.background.default,
+        color: theme.palette.text.primary,
+      }}
+    >
+      <Typography
+        variant="h1"
         component="h1"
         sx={{
-          fontSize: "3rem",
-          fontWeight: "bold",
-          textAlign: "center",
-          marginTop: "40px",
-          marginBottom: "40px",
-          width: "100%",
-          color: "#C2002F",
+          fontSize: '3rem',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          marginTop: '40px',
+          marginBottom: '40px',
+          width: '100%',
+          color: theme.palette.primary.main,
         }}
       >
         Creer Votre Formulaire
       </Typography>
- 
-      <TextField 
+
+      <TextField
         label="nom du formulaire"
         value={formName}
         onChange={(e) => setFormName(e.target.value)}
         error={!formName}
-        helperText={!formName ? "Le nom du formulaire est obligatoire" : ""}
+        helperText={!formName ? 'Le nom du formulaire est obligatoire' : ''}
         sx={{
-          marginLeft: "500px",
-          marginBottom: "20px",
+          marginLeft: '500px',
+          marginBottom: '20px',
           '& .MuiOutlinedInput-root': {
             '& fieldset': {
-              borderWidth: "1px",
-              borderColor: "black", 
+              borderWidth: '1px',
+              borderColor: theme.palette.text.primary,
             },
           },
         }}
       />
-      
+
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 700 }} aria-label="customized table">
           <TableHead>
@@ -262,24 +264,22 @@ const AuditForm = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <TextField
                             value={row.content}
-                            onChange={(e) => handleContentChange(index, e.target.value)}
+                            onChange={(e) => handleContentChange(index, 'content', e.target.value)}
                             variant="standard"
                             placeholder="Entrez le nom de la section"
-                            error={!row.content}
+                            fullWidth
+                            sx={{ marginRight: 2 }}
                           />
                           <IconButton onClick={() => addTextRow(index)}>
-                            <ArrowDropDownCircleIcon fontSize='large' sx={{ color: '#C2002F' }} />
-                          </IconButton>
-                          <IconButton onClick={() => removeLastTextRow(index)}>
-                            <ArrowCircleUpIcon fontSize='large' sx={{ color: '#C2002F' }} />
+                            <AddCircleIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F'}} />
                           </IconButton>
                         </Box>
-                        <Box>
-                          <IconButton onClick={() => addSectionRow(index)}>  
-                            <AddCircleIcon fontSize='large' sx={{ color: '#C2002F' }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <IconButton onClick={() => addSectionRow(index)}>
+                            <AddBoxIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F' }} />
                           </IconButton>
-                          <IconButton onClick={() => removeNextSection(index)}>
-                            <RemoveCircleIcon fontSize='large' sx={{ color: '#C2002F' }}/>
+                          <IconButton onClick={() => removeSectionRow(index)}>
+                            <DeleteIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F' }} />
                           </IconButton>
                         </Box>
                       </Box>
@@ -290,12 +290,27 @@ const AuditForm = () => {
                     <StyledTableCell>
                       <TextField
                         value={row.content}
-                        onChange={(e) => handleContentChange(index, e.target.value)}
-                        fullWidth
+                        onChange={(e) => handleContentChange(index, 'content', e.target.value)}
                         variant="standard"
-                        placeholder="Entrez votre question"
-                        error={!row.content}
+                        placeholder="Entrez le contenu de la règle"
+                        fullWidth
+                        sx={{ marginRight: 2 }}
                       />
+                    </StyledTableCell>
+                    <StyledTableCell>
+                      <TextField
+                        value={row.correctiveAction}
+                        onChange={(e) => handleContentChange(index, 'correctiveAction', e.target.value)}
+                        variant="standard"
+                        placeholder="Entrez l'action corrective"
+                        fullWidth
+                        sx={{ marginRight: 2 }}
+                      />
+                    </StyledTableCell>
+                    <StyledTableCell>
+                      <IconButton onClick={() => removeTextRow(index)}>
+                        <RemoveCircleIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F' }} />
+                      </IconButton>
                     </StyledTableCell>
                   </StyledTableRow>
                 )}
@@ -304,33 +319,14 @@ const AuditForm = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '20px',
-        }}
-      >
-        <Button
-          sx={{
-            padding: '10px 30px',
-            color: 'white',
-            backgroundColor: '#C2002F',
-            '&:hover': {
-              backgroundColor: '#C2002F', 
-            },
-          }}
-          variant="contained"
-          onClick={saveFormulaire}
-        >
-          Enregistrer
+
+      {error && <Alert severity="error" sx={{ marginTop: 2 }}>{error}</Alert>}
+
+      <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+        <Button variant="contained" color="primary" onClick={saveFormulaire}>
+          Sauvegarder le formulaire
         </Button>
       </Box>
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
-        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
     </Paper>
   );
 };
