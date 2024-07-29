@@ -115,13 +115,13 @@ const Reponse = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
-  const auditId = '66a623f195dcbf298b724519'; // Assurez-vous que cet ID est mis à jour correctement
+  const auditId = '66a5446c551a436bdb5c66ed'; 
 
   const fetchAuditAndFormulaire = async () => {
     try {
       setLoading(true);
       setError(null);
-      setCheckedItems({}); // Réinitialiser checkedItems
+      setCheckedItems({}); 
 
       const auditResponse = await fetch(`http://localhost:8080/Audit/${auditId}`);
       if (!auditResponse.ok) {
