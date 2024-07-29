@@ -290,3 +290,4 @@ const FormulaireDetail = () => {
 };
 
 export default FormulaireDetail;
+
