@@ -85,7 +85,7 @@ const FormulaireDetail = () => {
   const addTextRow = (sectionIndex) => {
     setFormulaire(prevFormulaire => {
       const newFormulaire = { ...prevFormulaire };
-      newFormulaire.sectionList[sectionIndex].regles.push({ description: '', actionCorrective: { description: '' } });
+      newFormulaire.sectionList[sectionIndex].regles.push({ description: '', actionCorrective: '' });
       return newFormulaire;
     });
   };
@@ -139,7 +139,7 @@ const FormulaireDetail = () => {
         if (field === 'description') {
           newFormulaire.sectionList[sectionIndex].regles[regleIndex].description = newContent;
         } else if (field === 'actionCorrective') {
-          newFormulaire.sectionList[sectionIndex].regles[regleIndex].actionCorrective.description = newContent;
+          newFormulaire.sectionList[sectionIndex].regles[regleIndex].actionCorrective = newContent;
         }
       }
       return newFormulaire;
@@ -159,7 +159,7 @@ const FormulaireDetail = () => {
       if (!section.description) return false;
       if (section.regles.length === 0) return false;
       for (const regle of section.regles) {
-        if (!regle.description || !regle.actionCorrective.description) return false;
+        if (!regle.description || !regle.actionCorrective) return false;
       }
     }
     return true;
@@ -243,7 +243,6 @@ const FormulaireDetail = () => {
                         <IconButton onClick={() => removeSection(sectionIndex)}>
                           <RemoveCircleIcon fontSize='large' sx={{ color: '#C2002F' }}/>
                         </IconButton>
-                        
                       </Box>
                     </Box>
                   </StyledTableCell>
@@ -260,11 +259,11 @@ const FormulaireDetail = () => {
                         fullWidth
                       />
                       <TextField
-                        value={regle.actionCorrective.description}
+                        value={regle.actionCorrective}
                         onChange={(e) => handleContentChange(sectionIndex, regleIndex, e.target.value, 'actionCorrective')}
                         variant="standard"
                         placeholder="Action corrective"
-                        error={!regle.actionCorrective.description}
+                        error={!regle.actionCorrective}
                         fullWidth
                       />
                     </StyledTableCell>
@@ -290,4 +289,3 @@ const FormulaireDetail = () => {
 };
 
 export default FormulaireDetail;
-

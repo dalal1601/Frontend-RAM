@@ -1,3 +1,4 @@
+import BackspaceIcon from '@mui/icons-material/Backspace'; // Import the new icon
 import React, { useState } from 'react';
 import {
   Table,
@@ -18,7 +19,6 @@ import { styled, useTheme } from '@mui/material/styles';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import AddBoxIcon from '@mui/icons-material/AddBox';
-import DeleteIcon from '@mui/icons-material/Delete';
 import Alert from '@mui/material/Alert';
 import { useNavigate } from 'react-router-dom';
 
@@ -71,11 +71,21 @@ const AuditForm = () => {
   };
 
   const removeSectionRow = (sectionIndex) => {
+    // Ensure there are multiple sections before allowing deletion
+    if (rows.length <= 1) {
+      setError("Vous devez avoir au moins une section.");
+      return;
+    }
+  
     const newRows = [...rows];
     let endIndex = sectionIndex + 1;
+  
+    // Find the end index of the section to remove
     while (endIndex < newRows.length && newRows[endIndex].type !== 'section') {
       endIndex++;
     }
+  
+    // Remove the section and its associated rows
     newRows.splice(sectionIndex, endIndex - sectionIndex);
     setRows(newRows);
   };
@@ -142,7 +152,7 @@ const AuditForm = () => {
       // Sauvegarder les règles
       const regles = rows.filter((row) => row.type === 'question').map((row) => ({
         description: row.content,
-        actionCorrective: { description: row.correctiveAction },
+        actionCorrective: row.correctiveAction, // Now just a string
       }));
 
       const savedRegles = await Promise.all(
@@ -226,17 +236,16 @@ const AuditForm = () => {
           color: theme.palette.primary.main,
         }}
       >
-        Creer Votre Formulaire
+        Créer Votre Formulaire
       </Typography>
 
       <TextField
-        label="nom du formulaire"
+        label="Nom du formulaire"
         value={formName}
         onChange={(e) => setFormName(e.target.value)}
         error={!formName}
         helperText={!formName ? 'Le nom du formulaire est obligatoire' : ''}
         sx={{
-          marginLeft: '500px',
           marginBottom: '20px',
           '& .MuiOutlinedInput-root': {
             '& fieldset': {
@@ -248,11 +257,12 @@ const AuditForm = () => {
       />
 
       <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 700 }} aria-label="customized table">
+        <Table sx={{ minWidth: 700, tableLayout: 'fixed' }} aria-label="customized table">
           <TableHead>
             <TableRow>
-              <StyledTableCell>{formName}</StyledTableCell>
+              <StyledTableCell colSpan={3}>{formName}</StyledTableCell>
             </TableRow>
+            {/* Add headers for each column if needed */}
           </TableHead>
           <TableBody>
             {rows.map((row, index) => (
@@ -271,15 +281,18 @@ const AuditForm = () => {
                             sx={{ marginRight: 2 }}
                           />
                           <IconButton onClick={() => addTextRow(index)}>
-                            <AddCircleIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F'}} />
+                            <AddCircleIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F' }} />
                           </IconButton>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <IconButton onClick={() => addSectionRow(index)}>
                             <AddBoxIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F' }} />
                           </IconButton>
-                          <IconButton onClick={() => removeSectionRow(index)}>
-                            <DeleteIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F' }} />
+                          <IconButton 
+                            onClick={() => removeSectionRow(index)}
+                            disabled={rows.length <= 1} // Disable button if there's only one section
+                          >
+                            <BackspaceIcon sx={{ fontSize: 30 }} style={{ color: '#C2002F' }} />
                           </IconButton>
                         </Box>
                       </Box>
@@ -332,4 +345,3 @@ const AuditForm = () => {
 };
 
 export default AuditForm;
-
