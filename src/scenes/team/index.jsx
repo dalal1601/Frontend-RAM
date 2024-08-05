@@ -10,7 +10,6 @@ import Header from "../../components/Header";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-
 const Team = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -63,17 +62,8 @@ const Team = () => {
       headerName: "Email",
       flex: 1,
     },
-    {
-      field: "dateCreation",
-      headerName: "Date de création",
-      flex: 1,
-      valueGetter: (params) => new Date(params.row.dateCreation).toLocaleDateString(),
-    },
-    {
-      field: "role",
-      headerName: "Role",
-      flex: 1,
-    },
+    
+    
     {
       field: "actions",
       headerName: "Actions",
@@ -97,7 +87,6 @@ const Team = () => {
       ),
     },
   ];
-  
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -136,10 +125,9 @@ const Team = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            nom_complet: `${values.firstName} ${values.lastName}`,
+            fullname: `${values.firstName} ${values.lastName}`,
             email: values.email,
             mdp: values.mdp,
-            tel: values.contact,
             role: "AUDITEUR", // Adjust as needed
           }),
         });
@@ -151,10 +139,9 @@ const Team = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            nom_complet: `${values.firstName} ${values.lastName}`,
+            fullname: `${values.firstName} ${values.lastName}`,
             email: values.email,
             mdp: values.mdp,
-            tel: values.contact,
             role: "AUDITEUR",
           }),
         });
@@ -176,25 +163,19 @@ const Team = () => {
     }
   };
 
-  const phoneRegExp =
-    /^((\+[1-9]{1,4}[ -]?)|(\([0-9]{2,3}\)[ -]?)|([0-9]{2,4})[ -]?)*?[0-9]{3,4}[ -]?[0-9]{3,4}$/;
+
 
   const checkoutSchema = yup.object().shape({
     firstName: yup.string().required("required"),
     lastName: yup.string().required("required"),
     email: yup.string().email("invalid email").required("required"),
-    contact: yup
-      .string()
-      .matches(phoneRegExp, "Phone number is not valid")
-      .required("required"),
     mdp: yup.string().required("required"),
   });
 
   const initialValues = {
-    firstName: selectedUser ? selectedUser.nom_complet.split(' ')[0] : "",
-    lastName: selectedUser ? selectedUser.nom_complet.split(' ')[1] : "",
+    firstName: selectedUser ? selectedUser.fullname.split(' ')[0] : "",
+    lastName: selectedUser ? selectedUser.fullname.split(' ')[1] : "",
     email: selectedUser ? selectedUser.email : "",
-    contact: selectedUser ? selectedUser.tel : "",
     mdp: selectedUser ? selectedUser.mdp : "", 
   };
 
@@ -301,7 +282,7 @@ const Team = () => {
                   <TextField
                     fullWidth
                     variant="outlined"
-                    type="text"
+                    type="email"
                     label="Email"
                     onBlur={handleBlur}
                     onChange={handleChange}
@@ -313,7 +294,7 @@ const Team = () => {
                   <TextField
                     fullWidth
                     variant="outlined"
-                    type="password"
+                    type="text"
                     label="Mot de passe"
                     onBlur={handleBlur}
                     onChange={handleChange}
@@ -322,36 +303,25 @@ const Team = () => {
                     error={!!touched.mdp && !!errors.mdp}
                     helperText={touched.mdp && errors.mdp}
                   />
-                  <TextField
-                    fullWidth
-                    variant="outlined"
-                    type="text"
-                    label="Téléphone"
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    value={values.contact}
-                    name="contact"
-                    error={!!touched.contact && !!errors.contact}
-                    helperText={touched.contact && errors.contact}
-                    sx={{ gridColumn: "span 2" }}
-                  />
                 </Box>
-                <Box display="flex" justifyContent="flex-end" mt="20px">
-                  <Button type="submit" color="primary" variant="contained">
-                    {selectedUser ? "Update User" : "Créer l'auditeur"}
+                <DialogActions sx={{ mt: 2 }}>
+                  <Button onClick={handleClose} color="secondary">
+                    Annuler
                   </Button>
-                </Box>
-                {error && (
-                  <Box mt="20px" color="error.main" textAlign="center">
-                    <Typography>{error}</Typography>
-                  </Box>
-                )}
+                  <Button type="submit" color="primary">
+                    {selectedUser ? "Sauvegarder" : "Créer"}
+                  </Button>
+                </DialogActions>
               </form>
             )}
           </Formik>
         </DialogContent>
-        
       </Dialog>
+      {error && (
+        <Typography variant="body1" color="error">
+          {error}
+        </Typography>
+      )}
     </Box>
   );
 };

@@ -190,7 +190,7 @@ const Reponse = () => {
   const handleConfirmSave = async () => {
     setIsSubmitting(true);
     setOpenConfirmDialog(false);
-    
+  
     const reponses = Object.entries(checkedItems).map(([regleId, value]) => ({
       [regleId]: value === 'Conform'
     }));
@@ -240,8 +240,8 @@ const Reponse = () => {
         throw new Error(errorText || 'Failed to save PDF');
       }
   
-      // Send the email
-      const emailResponse = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
+      // Send the first email
+      const emailResponse1 = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,19 +249,36 @@ const Reponse = () => {
         body: JSON.stringify({ reponseId: result.id }),
       });
   
-      if (!emailResponse.ok) {
-        const errorText = await emailResponse.text();
+      if (!emailResponse1.ok) {
+        const errorText = await emailResponse1.text();
         console.error('Failed to send email:', errorText);
         throw new Error(errorText || 'Failed to send email');
       }
   
-      setSnackbar({ open: true, message: 'Données enregistrées et email envoyé avec succès!', severity: 'success' });
+      // Send the second email
+      const emailResponse2 = await fetch('http://localhost:8080/Reponse/send-pdf-email2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reponseId: result.id }),
+      });
+  
+      if (!emailResponse2.ok) {
+        const errorText = await emailResponse2.text();
+        console.error('Failed to send email:', errorText);
+        throw new Error(errorText || 'Failed to send email');
+      }
+  
+      setSnackbar({ open: true, message: 'Données enregistrées et emails envoyés avec succès!', severity: 'success' });
     } catch (error) {
       setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
     } finally {
       setIsSubmitting(false);
     }
   };
+  
+  
 
   if (loading) return <LinearProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
