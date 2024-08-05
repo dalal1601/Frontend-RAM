@@ -4,24 +4,18 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
-import Popup from "../../components/Popup";
-import Select from "react-select";
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import Header from "../../components/Header";
-import { tokens } from "../../theme";
+import { Box, Button, TextField, Typography, useTheme, Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from "@mui/material";
+import CloseIcon from '@mui/icons-material/Close';
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 import Tooltip from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 
 const Calendar = () => {
-  const [openPopup, setOpenPopup] = useState(false);
+  const [openCreatePopup, setOpenCreatePopup] = useState(false);
+  const [openDetailsPopup, setOpenDetailsPopup] = useState(false);
+  const [selectedAudit, setSelectedAudit] = useState(null);
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   const [currentEvents, setCurrentEvents] = useState([]);
   const [auditeurs, setAuditeurs] = useState([]);
   const [formulaires, setFormulaires] = useState([]);
@@ -86,9 +80,13 @@ const Calendar = () => {
           start: new Date(audit.dateDebut),
           end: addOneDay(new Date(audit.dateFin)), // Add one day to make the end date inclusive
           allDay: true,
+          backgroundColor: '#C2002F', // Red background color
+          borderColor: '#ffffff', // Red border color
+          textColor: '#ffffff', // White text color for contrast
           extendedProps: {
             escaleVille: audit.escaleVille || 'Unknown',
             auditeur: audit.auditeur.nom_complet,
+            formulaire: audit.formulaire.nom || 'Unknown Formulaire', // Assuming formulaire has a 'nom' field
           },
         }));
       setCurrentEvents(events);
@@ -128,18 +126,25 @@ const Calendar = () => {
         extendedProps: {
           escaleVille: savedAudit.escaleVille || 'Unknown',
           auditeur: savedAudit.auditeur.nom_complet,
+          formulaire: savedAudit.formulaire.nom || 'Unknown Formulaire',
         },
       }]);
-      setOpenPopup(false);
+      setOpenCreatePopup(false);
     } catch (error) {
       console.error("Error saving audit:", error);
     }
   };
 
+  const handleEventClick = (info) => {
+    const audit = currentEvents.find(event => event.id === info.event.id);
+    setSelectedAudit(audit);
+    setOpenDetailsPopup(true);
+  };
+
   return (
     <Box m="20px">
       <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Header title="Calendar" subtitle="Full Calendar Interactive Page" />
+        <Typography variant="h4">Calendrier</Typography>
         <Button
           variant="contained"
           sx={{
@@ -148,11 +153,8 @@ const Calendar = () => {
             '&:hover': {
               backgroundColor: '#A5002A',
             },
-            '&:disabled': {
-              backgroundColor: '#FFB3B3',
-            }
           }}
-          onClick={() => setOpenPopup(true)}
+          onClick={() => setOpenCreatePopup(true)}
         >
           Créer un Audit
         </Button>
@@ -167,7 +169,6 @@ const Calendar = () => {
             interactionPlugin,
             listPlugin,
           ]}
-       
           initialView="dayGridMonth"
           editable={true}
           selectable={true}
@@ -190,76 +191,233 @@ const Calendar = () => {
               container: 'body'
             });
           }}
+          eventClick={handleEventClick}
         />
       </Box>
 
-      <Popup
-        openPopup={openPopup}
-        setOpenPopup={setOpenPopup}
-        title="Créer un Audit"
+      <Dialog
+        open={openCreatePopup}
+        onClose={() => setOpenCreatePopup(false)}
+        maxWidth="md"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            width: '90%',
+            maxWidth: '800px',
+          },
+        }}
       >
-        <form style={{
-          display: "grid",
-          gap: "20px",
-          gridTemplateColumns: "repeat(2, 1fr)",
-        }}>
-          <div>
-            <label htmlFor="dateDebut">Date Début:</label>
-            <TextField
-              id="dateDebut"
-              type="date"
-              onChange={(e) => setAudit({ ...audit, dateDebut: e.target.value })}
-              fullWidth
-            />
-          </div>
-          <div>
-            <label htmlFor="dateFin">Date Fin:</label>
-            <TextField
-              id="dateFin"
-              type="date"
-              onChange={(e) => setAudit({ ...audit, dateFin: e.target.value })}
-              fullWidth
-            />
-          </div>
-          <div>
-            <label htmlFor="escaleVille">Ville d'escale:</label>
-            <TextField
-              id="escaleVille"
-              placeholder="Ville d'escale"
-              onChange={(e) => setAudit({ ...audit, escaleVille: e.target.value })}
-              fullWidth
-            />
-          </div>
-          <div>
-            <label htmlFor="auditeur">Auditeur:</label>
-            <Select
-              options={auditeurs}
-              onChange={(selectedOption) => setAudit({ ...audit, auditeur: selectedOption.value })}
-            />
-          </div>
-          <div>
-            <label htmlFor="formulaire">Formulaire:</label>
-            <Select
-              options={formulaires}
-              onChange={(selectedOption) => setAudit({ ...audit, formulaire: selectedOption.value })}
-            />
-          </div>
-          <Button
+        <DialogTitle
+          sx={{
+            fontWeight: 'bold',
+            backgroundColor: '#C2002F',
+            color: 'white',
+            textAlign: 'center',
+            padding: '16px',
+            position: 'relative',
+          }}
+        >
+          Créer un Audit
+          <IconButton
+            onClick={() => setOpenCreatePopup(false)}
             sx={{
-              padding: '10px 30px',
+              position: 'absolute',
+              right: '16px',
+              top: '16px',
               color: 'white',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent
+          sx={{
+            padding: '16px',
+            backgroundColor: '#f5f5f5',
+            overflowY: 'auto',
+          }}
+        >
+          <form style={{
+            display: "grid",
+            gap: "20px",
+            gridTemplateColumns: "repeat(2, 1fr)",
+          }}>
+            <div>
+              <label htmlFor="dateDebut">Date Début:</label>
+              <TextField
+                id="dateDebut"
+                type="date"
+                onChange={(e) => setAudit({ ...audit, dateDebut: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="dateFin">Date Fin:</label>
+              <TextField
+                id="dateFin"
+                type="date"
+                onChange={(e) => setAudit({ ...audit, dateFin: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="escaleVille">Ville d'escale:</label>
+              <TextField
+                id="escaleVille"
+                onChange={(e) => setAudit({ ...audit, escaleVille: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="auditeur">Auditeur:</label>
+              <Select
+                id="auditeur"
+                value={audit.auditeur}
+                onChange={(e) => setAudit({ ...audit, auditeur: e.target.value })}
+                fullWidth
+                MenuProps={{
+                  PaperProps: {
+                    style: {
+                      maxHeight: 400, // Adjust height to fit your needs
+                    },
+                  },
+                }}
+              >
+                {auditeurs.map((auditeur) => (
+                  <MenuItem key={auditeur.value} value={auditeur.value}>
+                    {auditeur.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <label htmlFor="formulaire">Formulaire:</label>
+              <Select
+                id="formulaire"
+                value={audit.formulaire}
+                onChange={(e) => setAudit({ ...audit, formulaire: e.target.value })}
+                fullWidth
+                MenuProps={{
+                  PaperProps: {
+                    style: {
+                      maxHeight: 400, // Adjust height to fit your needs
+                    },
+                  },
+                }}
+              >
+                {formulaires.map((formulaire) => (
+                  <MenuItem key={formulaire.value} value={formulaire.value}>
+                    {formulaire.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </div>
+          </form>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            padding: '8px',
+            justifyContent: 'center',
+          }}
+        >
+          <Button
+            onClick={handleEnregistre}
+            variant="contained"
+            color="secondary"
+            sx={{
+              margin: '8px',
               backgroundColor: '#C2002F',
+              color: 'white',
               '&:hover': {
                 backgroundColor: '#A5002A',
               },
             }}
-            variant="contained"
-            onClick={handleEnregistre}
           >
             Enregistrer
           </Button>
-        </form>
-      </Popup>
+          <Button
+            onClick={() => setOpenCreatePopup(false)}
+            variant="outlined"
+            sx={{
+              margin: '8px',
+            }}
+          >
+            Annuler
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={openDetailsPopup}
+        onClose={() => setOpenDetailsPopup(false)}
+        maxWidth="md"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            width: '90%',
+            maxWidth: '800px',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 'bold',
+            backgroundColor: '#C2002F',
+            color: 'white',
+            textAlign: 'center',
+            padding: '16px',
+            position: 'relative',
+          }}
+        >
+          Détails de l'Audit
+          <IconButton
+            onClick={() => setOpenDetailsPopup(false)}
+            sx={{
+              position: 'absolute',
+              right: '16px',
+              top: '16px',
+              color: 'white',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent
+          sx={{
+            padding: '16px',
+            backgroundColor: '#f5f5f5',
+            overflowY: 'auto',
+          }}
+        >
+          {selectedAudit && (
+            <Box>
+              <Typography variant="h6" sx={{ marginTop: '16px' }}>
+                Nom du Formulaire: {selectedAudit.extendedProps.formulaire}
+              </Typography>
+              <Typography variant="h6">Ville d'escale: {selectedAudit.extendedProps.escaleVille}</Typography>
+              <Typography variant="h6">Auditeur: {selectedAudit.extendedProps.auditeur}</Typography>
+              <Typography variant="h6">Date Début: {new Date(selectedAudit.start).toLocaleDateString()}</Typography>
+              <Typography variant="h6">Date Fin: {new Date(selectedAudit.end).toLocaleDateString()}</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            padding: '8px',
+            justifyContent: 'center',
+          }}
+        >
+          <Button
+            onClick={() => setOpenDetailsPopup(false)}
+            variant="outlined"
+            sx={{
+              margin: '8px',
+            }}
+          >
+            Fermer
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
