@@ -115,13 +115,13 @@ const Reponse = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
-  const auditId = '66a5446c551a436bdb5c66ed'; 
+  const auditId = '66b0be4f5117617d754f5e38'; // Assurez-vous que cet ID est mis à jour correctement
 
   const fetchAuditAndFormulaire = async () => {
     try {
       setLoading(true);
       setError(null);
-      setCheckedItems({}); 
+      setCheckedItems({}); // Réinitialiser checkedItems
 
       const auditResponse = await fetch(`http://localhost:8080/Audit/${auditId}`);
       if (!auditResponse.ok) {
@@ -187,83 +187,81 @@ const Reponse = () => {
     }
   };
 
-
-
-//////////////
-const handleConfirmSave = async () => {
-  setIsSubmitting(true);
-  setOpenConfirmDialog(false);
-
-  const reponses = Object.entries(checkedItems).map(([regleId, value]) => ({
-    [regleId]: value === 'Conform'
-  }));
-
-  const payload = {
-    audit: { id: auditId },
-    reponses: reponses,
+  const handleConfirmSave = async () => {
+    setIsSubmitting(true);
+    setOpenConfirmDialog(false);
+    
+    const reponses = Object.entries(checkedItems).map(([regleId, value]) => ({
+      [regleId]: value === 'Conform'
+    }));
+  
+    const payload = {
+      audit: { id: auditId },
+      reponses: reponses,
+    };
+  
+    try {
+      // Save the response
+      const response = await fetch('http://localhost:8080/Reponse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Failed to save data:', errorData);
+        throw new Error(errorData || 'Failed to save data');
+      }
+  
+      const result = await response.json();
+      setAudit(result.audit);
+  
+      if (!result.id) {
+        throw new Error('Missing reponseId from save response');
+      }
+  
+      // Save the PDF
+      const pdfResponse = await fetch('http://localhost:8080/Reponse/save-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rapportId: result.id,
+        }),
+      });
+  
+      if (!pdfResponse.ok) {
+        const errorText = await pdfResponse.text();
+        console.error('Failed to save PDF:', errorText);
+        throw new Error(errorText || 'Failed to save PDF');
+      }
+  
+      // Send the email
+      const emailResponse = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reponseId: result.id }),
+      });
+  
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.error('Failed to send email:', errorText);
+        throw new Error(errorText || 'Failed to send email');
+      }
+  
+      setSnackbar({ open: true, message: 'Données enregistrées et email envoyé avec succès!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  try {
-    const response = await fetch('http://localhost:8080/Reponse', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Failed to save data:', errorData);
-      throw new Error(errorData || 'Failed to save data');
-    }
-
-    const result = await response.json();
-    setSnackbar({ open: true, message: 'Données enregistrées avec succès!', severity: 'success' });
-
-    if (!result.id) {
-      throw new Error('Missing reponseId from save response');
-    }
-
-    const pdfResponse = await fetch('http://localhost:8080/Reponse/save-pdf', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        rapportId: result.id,
-      }),
-    });
-
-    if (!pdfResponse.ok) {
-      const errorText = await pdfResponse.text();
-      console.error('Failed to save PDF:', errorText);
-      throw new Error(errorText || 'Failed to save PDF');
-    }
-
-    const emailResponse = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ reponseId: result.id }),
-    });
-
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error('Failed to send email:', errorText);
-      throw new Error(errorText || 'Failed to send email');
-    }
-
-    setSnackbar({ open: true, message: 'Email envoyé avec succès!', severity: 'success' });
-  } catch (error) {
-    setSnackbar({ open: true, message: `Erreur lors de l'enregistrement des données ou de l'envoi de l'email: ${error.message}`, severity: 'error' });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-///////////////
 
   if (loading) return <LinearProgress />;
   if (error) return <Typography color="error">{error}</Typography>;

@@ -53,7 +53,7 @@ const Team = () => {
   const columns = [
     { field: "id", headerName: "ID" },
     {
-      field: "nom_complet",
+      field: "fullname",
       headerName: "Nom Complet",
       flex: 1,
       cellClassName: "name-column--cell",
@@ -61,11 +61,6 @@ const Team = () => {
     {
       field: "email",
       headerName: "Email",
-      flex: 1,
-    },
-    {
-      field: "tel",
-      headerName: "Téléphone",
       flex: 1,
     },
     {
