@@ -52,7 +52,7 @@ const Calendar = () => {
         throw new Error("Failed to fetch auditeurs");
       }
       const data = await response.json();
-      setAuditeurs(data.map(auditeur => ({ value: auditeur.id, label: auditeur.nom_complet })));
+      setAuditeurs(data.map(auditeur => ({ value: auditeur.id, label: auditeur.fullname })));
     } catch (error) {
       console.error("Error fetching auditeurs:", error);
     }
@@ -79,16 +79,16 @@ const Calendar = () => {
       }
       const data = await response.json();
       const events = data
-        .filter(audit => audit.auditeur && audit.auditeur.nom_complet && audit.dateDebut && audit.dateFin)
+        .filter(audit => audit.auditeur && audit.auditeur.fullname && audit.dateDebut && audit.dateFin)
         .map(audit => ({
           id: audit.id,
-          title: `${audit.escaleVille || 'Unknown'} - ${audit.auditeur.nom_complet}`,
+          title: `${audit.escaleVille || 'Unknown'} - ${audit.auditeur.fullname}`,
           start: new Date(audit.dateDebut),
           end: addOneDay(new Date(audit.dateFin)), // Add one day to make the end date inclusive
           allDay: true,
           extendedProps: {
             escaleVille: audit.escaleVille || 'Unknown',
-            auditeur: audit.auditeur.nom_complet,
+            auditeur: audit.auditeur.fullname,
           },
         }));
       setCurrentEvents(events);
@@ -121,13 +121,13 @@ const Calendar = () => {
       const savedAudit = await response.json();
       setCurrentEvents([...currentEvents, {
         id: savedAudit.id,
-        title: `${savedAudit.escaleVille || 'Unknown'} - ${savedAudit.auditeur.nom_complet}`,
+        title: `${savedAudit.escaleVille || 'Unknown'} - ${savedAudit.auditeur.fullname}`,
         start: new Date(savedAudit.dateDebut),
         end: addOneDay(new Date(savedAudit.dateFin)), // Add one day to make the end date inclusive
         allDay: true,
         extendedProps: {
           escaleVille: savedAudit.escaleVille || 'Unknown',
-          auditeur: savedAudit.auditeur.nom_complet,
+          auditeur: savedAudit.auditeur.fullname,
         },
       }]);
       setOpenPopup(false);

@@ -96,7 +96,7 @@ const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems
           Annuler
         </Button>
         <Button onClick={onConfirm}  variant="contained"  sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
-          Enregistrer
+          Confirmer
         </Button>
       </DialogActions>
     </StyledDialog>
@@ -115,7 +115,7 @@ const Reponse = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
-  const auditId = '66a623f195dcbf298b724519'; // Assurez-vous que cet ID est mis à jour correctement
+  const auditId = '66b0be4f5117617d754f5e38'; // Assurez-vous que cet ID est mis à jour correctement
 
   const fetchAuditAndFormulaire = async () => {
     try {
@@ -194,12 +194,12 @@ const Reponse = () => {
     const reponses = Object.entries(checkedItems).map(([regleId, value]) => ({
       [regleId]: value === 'Conform'
     }));
-
+  
     const payload = {
       audit: { id: auditId },
       reponses: reponses,
     };
-
+  
     try {
       const response = await fetch('http://localhost:8080/Reponse', {
         method: 'POST',
@@ -208,14 +208,16 @@ const Reponse = () => {
         },
         body: JSON.stringify(payload),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save data');
       }
-
+  
       const result = await response.json();
-      setSnackbar({ open: true, message: 'Données enregistrées avec succès!', severity: 'success' });
+      setAudit(result.audit);
+  
+      setSnackbar({ open: true, message: result.message, severity: 'success' });
     } catch (error) {
       setSnackbar({ open: true, message: `Erreur lors de l'enregistrement des données: ${error.message}`, severity: 'error' });
     } finally {
