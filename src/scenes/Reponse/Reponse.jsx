@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom'; 
 import {
   Table,
   TableBody,
@@ -115,7 +116,7 @@ const Reponse = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
-  const auditId = '66b14b71337e5d36f0f30efc'; // Assurez-vous que cet ID est mis à jour correctement
+  const { auditId } = useParams(); // 
 
   const fetchAuditAndFormulaire = async () => {
     try {

@@ -17,10 +17,12 @@ import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import FileCopyIcon from '@mui/icons-material/FileCopy';
+import useCurrentUserId from "../../hook/useCurrentUserId";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+
   return (
     <MenuItem
       active={selected === title}
@@ -41,6 +43,7 @@ const Sidebar = () => {
   const colors = tokens(theme.palette.mode);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
+  const userId = useCurrentUserId(); // Retrieve current user ID
 
   return (
     <Box
@@ -98,7 +101,6 @@ const Sidebar = () => {
                   width="100px"
                   height="100px"
                   src={`../../assets/images.png`}
-                 
                 />
               </Box>
               <Box textAlign="center">
@@ -176,15 +178,16 @@ const Sidebar = () => {
               selected={selected}
               setSelected={setSelected}
             />
+            
             <Item
-              title="Reponse"
-              to="/reponse"
+              title="Audits"
+              to={`/Audits/${userId}`} // Ensure userId is a string
               icon={<FileCopyIcon />}
               selected={selected}
               setSelected={setSelected}
             />
             <Item
-              title="Calendar"
+              title="Calendrier"
               to="/calendar"
               icon={<CalendarTodayOutlinedIcon />}
               selected={selected}
