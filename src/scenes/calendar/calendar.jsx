@@ -4,7 +4,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
-import Popup from "../../components/Popup";
+import PopUpRED from "../../components/PopUpRED";
 import Select from "react-select";
 import {
   Box,
@@ -20,6 +20,8 @@ import 'tippy.js/dist/tippy.css';
 
 const Calendar = () => {
   const [openPopup, setOpenPopup] = useState(false);
+  const [openEventPopup, setOpenEventPopup] = useState(false);
+  const [popupContent, setPopupContent] = useState({});
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [currentEvents, setCurrentEvents] = useState([]);
@@ -86,15 +88,32 @@ const Calendar = () => {
           start: new Date(audit.dateDebut),
           end: addOneDay(new Date(audit.dateFin)), // Add one day to make the end date inclusive
           allDay: true,
+          backgroundColor: '#C2002F', // Red background color
+          borderColor: '#ffffff', // Red border color
+          textColor: '#ffffff',
+          classNames: ['audit-event'], // Apply class for styling
           extendedProps: {
             escaleVille: audit.escaleVille || 'Unknown',
             auditeur: audit.auditeur.fullname,
+            formulaire: audit.formulaire.nom, // Assuming formulaire has a nom field
+            dateDebut: audit.dateDebut,
+            dateFin: audit.dateFin,
           },
         }));
       setCurrentEvents(events);
     } catch (error) {
       console.error("Error fetching Audits:", error);
     }
+  };
+
+  const handleEventClick = (info) => {
+    setPopupContent({
+      nomFormulaire: info.event.extendedProps.formulaire,
+      escaleVille: info.event.extendedProps.escaleVille,
+      dateDebut: info.event.extendedProps.dateDebut,
+      dateFin: info.event.extendedProps.dateFin,
+    });
+    setOpenEventPopup(true);
   };
 
   const handleEnregistre = async () => {
@@ -125,9 +144,13 @@ const Calendar = () => {
         start: new Date(savedAudit.dateDebut),
         end: addOneDay(new Date(savedAudit.dateFin)), // Add one day to make the end date inclusive
         allDay: true,
+        classNames: ['audit-event'], // Apply class for styling
         extendedProps: {
           escaleVille: savedAudit.escaleVille || 'Unknown',
           auditeur: savedAudit.auditeur.fullname,
+          formulaire: savedAudit.formulaire.nom,
+          dateDebut: savedAudit.dateDebut,
+          dateFin: savedAudit.dateFin,
         },
       }]);
       setOpenPopup(false);
@@ -167,7 +190,6 @@ const Calendar = () => {
             interactionPlugin,
             listPlugin,
           ]}
-       
           initialView="dayGridMonth"
           editable={true}
           selectable={true}
@@ -182,6 +204,7 @@ const Calendar = () => {
               </div>
             );
           }}
+          eventClick={handleEventClick}
           eventDidMount={(info) => {
             new Tooltip(info.el, {
               title: `${info.event.extendedProps.escaleVille} - ${info.event.extendedProps.auditeur}`,
@@ -193,73 +216,94 @@ const Calendar = () => {
         />
       </Box>
 
-      <Popup
-        openPopup={openPopup}
-        setOpenPopup={setOpenPopup}
+      <PopUpRED
+        open={openPopup}
+        onClose={() => setOpenPopup(false)}
         title="Créer un Audit"
-      >
-        <form style={{
-          display: "grid",
-          gap: "20px",
-          gridTemplateColumns: "repeat(2, 1fr)",
-        }}>
+        content={
+          <form style={{
+            display: "grid",
+            gap: "20px",
+            gridTemplateColumns: "repeat(2, 1fr)",
+          }}>
+            <div>
+              <label htmlFor="dateDebut">Date Début:</label>
+              <TextField
+                id="dateDebut"
+                type="date"
+                onChange={(e) => setAudit({ ...audit, dateDebut: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="dateFin">Date Fin:</label>
+              <TextField
+                id="dateFin"
+                type="date"
+                onChange={(e) => setAudit({ ...audit, dateFin: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="escaleVille">Ville d'escale:</label>
+              <TextField
+                id="escaleVille"
+                placeholder="Ville d'escale"
+                onChange={(e) => setAudit({ ...audit, escaleVille: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="formulaire">Formulaire:</label>
+              <Select
+                id="formulaire"
+                options={formulaires}
+                onChange={(selectedOption) => setAudit({ ...audit, formulaire: selectedOption.value })}
+              />
+            </div>
+            <div>
+              <label htmlFor="auditeur">Auditeur:</label>
+              <Select
+                id="auditeur"
+                options={auditeurs}
+                onChange={(selectedOption) => setAudit({ ...audit, auditeur: selectedOption.value })}
+              />
+            </div>
+            <div style={{ gridColumn: "span 2" }}>
+              <Button
+                variant="contained"
+                onClick={handleEnregistre}
+                sx={{
+                  backgroundColor: '#C2002F',
+                  '&:hover': {
+                    backgroundColor: '#A5002A',
+                  },
+                  '&:disabled': {
+                    backgroundColor: '#FFB3B3',
+                  },
+                  width: "100%"
+                }}
+              >
+                Enregistrer
+              </Button>
+            </div>
+          </form>
+        }
+      />
+
+      <PopUpRED
+        open={openEventPopup}
+        onClose={() => setOpenEventPopup(false)}
+        title="Audit Details"
+        content={
           <div>
-            <label htmlFor="dateDebut">Date Début:</label>
-            <TextField
-              id="dateDebut"
-              type="date"
-              onChange={(e) => setAudit({ ...audit, dateDebut: e.target.value })}
-              fullWidth
-            />
+            <Typography variant="h6" sx={{ marginTop: '16px' }} >Formulaire: {popupContent.nomFormulaire}</Typography>
+            <Typography variant="h6">Ville d'escale: {popupContent.escaleVille}</Typography>
+            <Typography variant="h6">Date de Début: {new Date(popupContent.dateDebut).toLocaleDateString()}</Typography>
+            <Typography variant="h6">Date de Fin: {new Date(popupContent.dateFin).toLocaleDateString()}</Typography>
           </div>
-          <div>
-            <label htmlFor="dateFin">Date Fin:</label>
-            <TextField
-              id="dateFin"
-              type="date"
-              onChange={(e) => setAudit({ ...audit, dateFin: e.target.value })}
-              fullWidth
-            />
-          </div>
-          <div>
-            <label htmlFor="escaleVille">Ville d'escale:</label>
-            <TextField
-              id="escaleVille"
-              placeholder="Ville d'escale"
-              onChange={(e) => setAudit({ ...audit, escaleVille: e.target.value })}
-              fullWidth
-            />
-          </div>
-          <div>
-            <label htmlFor="auditeur">Auditeur:</label>
-            <Select
-              options={auditeurs}
-              onChange={(selectedOption) => setAudit({ ...audit, auditeur: selectedOption.value })}
-            />
-          </div>
-          <div>
-            <label htmlFor="formulaire">Formulaire:</label>
-            <Select
-              options={formulaires}
-              onChange={(selectedOption) => setAudit({ ...audit, formulaire: selectedOption.value })}
-            />
-          </div>
-          <Button
-            sx={{
-              padding: '10px 30px',
-              color: 'white',
-              backgroundColor: '#C2002F',
-              '&:hover': {
-                backgroundColor: '#A5002A',
-              },
-            }}
-            variant="contained"
-            onClick={handleEnregistre}
-          >
-            Enregistrer
-          </Button>
-        </form>
-      </Popup>
+        }
+      />
     </Box>
   );
 };
