@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Paper, Typography, Grid, Card, CardContent } from '@mui/material';
 import { styled } from '@mui/system';
 
-const StyledCard = styled(Card)(({ theme, isToday, isFuture }) => ({
-  cursor: isFuture ? 'not-allowed' : 'pointer',
+const StyledCard = styled(Card)(({ theme, isToday, isAccessible }) => ({
+  cursor: isAccessible ? 'pointer' : 'not-allowed',
   marginBottom: theme.spacing(2),
   backgroundColor: isToday ? 'rgba(255, 0, 0, 0.2)' : 'inherit',
+  opacity: isAccessible ? 1 : 0.5,
   '&:hover': {
-    backgroundColor: isFuture ? 'inherit' : theme.palette.action.hover,
+    backgroundColor: isAccessible ? theme.palette.action.hover : 'inherit',
   },
 }));
 
@@ -57,7 +58,14 @@ const UserAudits = () => {
         }
 
         const data = await response.json();
-        const filteredAudits = data.filter(audit => isFuture(audit.dateFin) || isWithinPeriod(audit.dateDebut, audit.dateFin));
+        console.log('Fetched audits:', data);
+
+        // Filter audits based on whether they are in the future or not
+        const filteredAudits = data.filter(audit => 
+          isToday(audit.dateFin) || isWithinPeriod(audit.dateDebut, audit.dateFin) || isFuture(audit.dateFin)
+        );
+
+        console.log('Filtered audits:', filteredAudits);
         setAudits(filteredAudits);
       } catch (error) {
         setError('Error fetching audits: ' + error.message);
@@ -67,10 +75,8 @@ const UserAudits = () => {
     fetchAudits();
   }, [userId]);
 
-  const handleAuditClick = (auditId, isFuture) => {
-    if (!isFuture) {
-      navigate(`/reponse/${auditId}`);
-    }
+  const handleAuditClick = (auditId) => {
+    navigate(`/reponse/${auditId}`);
   };
 
   return (
@@ -82,14 +88,16 @@ const UserAudits = () => {
       <Grid container spacing={2}>
         {audits.length > 0 ? (
           audits.map((audit) => {
-            const isTodayAudit = isWithinPeriod(audit.dateDebut, audit.dateFin) && isToday(new Date());
-            const isFutureAudit = isFuture(audit.dateDebut);
+            const endDate = new Date(audit.dateFin);
+            const isTodayAudit = endDate.toDateString() === new Date().toDateString();
+            const isAccessible = !isFuture(audit.dateFin) || isTodayAudit || isWithinPeriod(audit.dateDebut, audit.dateFin);
+
             return (
               <Grid item xs={12} sm={6} md={4} key={audit.id}>
-                <StyledCard
-                  onClick={() => handleAuditClick(audit.id, isFutureAudit)}
-                  isToday={isTodayAudit}
-                  isFuture={isFutureAudit}
+                <StyledCard 
+                  onClick={() => isAccessible && handleAuditClick(audit.id)} 
+                  isToday={isTodayAudit} 
+                  isAccessible={isAccessible}
                 >
                   <CardContent>
                     <Typography variant="h6">Le nom du Formulaire: {audit.formulaire.nom}</Typography>
