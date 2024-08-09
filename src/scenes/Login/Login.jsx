@@ -24,6 +24,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [error, setError] = useState("");
+  
 
 
   const handleSubmit = async (event) => {
@@ -46,7 +47,15 @@ export default function Login() {
         }
         const data = await response.json();
 
-        localStorage.setItem("token",data.access_token);
+        const idodi = JSON.parse(atob(data.access_token.split('.')[1]));
+
+       const idm9ad=idodi.sub; console.log("------------ id: " + idodi.sub);
+         console.log("all data : ßßßßßßßß :", data); 
+         localStorage.setItem("token",data.access_token);
+          localStorage.setItem("IdUser",idm9ad)
+
+
+
         navigate("/dashboard");
     }catch(error){
        

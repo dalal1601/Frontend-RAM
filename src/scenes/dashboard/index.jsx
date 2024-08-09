@@ -17,6 +17,9 @@ const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
+
+  console.log("dash----------- "+localStorage.getItem("IdUser"));
+
   return (
     <Box m="20px">
       {/* HEADER */}
