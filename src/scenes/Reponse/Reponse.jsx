@@ -21,6 +21,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Modal,
+  TextField,
 } from '@mui/material';
 import { styled, useTheme } from '@mui/system';
 import { useMediaQuery } from '@mui/material';
@@ -54,6 +56,101 @@ const SectionRow = styled(TableRow)(({ theme }) => ({
     padding: theme.spacing(1, 2),
   },
 }));
+
+const InitialPopup = ({ open, onClose }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState(null);
+
+  const handleSubmit = async () => {
+    if (name && email) {
+      setLoading(true);
+      setError(null);
+    try{
+      const response = await fetch('http://localhost:8080/User/addAudit',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+        },
+        body:JSON.stringify({fullname:name,email:email}),
+      });
+
+      if(!response.ok){
+        throw new Error('Failed to create user');
+      }
+
+      const userData = await response.json();
+      onClose({name,email,id:userData.id})
+    }catch(error){
+      console.log(error)
+    }finally{
+      setLoading(false)
+    }
+    }
+  };
+  
+
+  return (
+    <Modal 
+      open={open}
+      onClose={onClose} 
+      aria-labelledby="initial-popup-title"
+      aria-describedby="initial-popup-description"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
+      <Box
+        sx={{
+          backgroundColor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          width: 300,
+          borderRadius: 2,
+        }}
+      >
+        <Typography id="initial-popup-title" variant="h6" component="h2" gutterBottom>
+          Veuillez entrer les informations d'audité
+        </Typography>
+        <TextField
+          fullWidth
+          label="Nom complet"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          margin="normal"
+          required
+        />
+        <TextField
+          fullWidth
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          margin="normal"
+          required
+        />
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={!name || !email || loading} 
+          sx={{ mt: 2 }}
+        >
+           {loading ? <CircularProgress size={24} /> : 'Continuer'}
+        </Button>
+        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+            {error}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </Modal>
+  );
+};
 
 const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems }) => {
   const theme = useTheme();
@@ -96,7 +193,7 @@ const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems
         <Button onClick={onClose} color="primary">
           Annuler
         </Button>
-        <Button onClick={onConfirm}  variant="contained"  sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
+        <Button onClick={onConfirm} variant="contained" sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
           Confirmer
         </Button>
       </DialogActions>
@@ -115,14 +212,18 @@ const Reponse = () => {
   const [checkedItems, setCheckedItems] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [showInitialPopup, setShowInitialPopup] = useState(true);
+  const [userInfo, setUserInfo] = useState(null);
+  const [userId, setUserId] = useState(null);
 
-  const { auditId } = useParams(); // 
+
+  const { auditId } = useParams();
 
   const fetchAuditAndFormulaire = async () => {
     try {
       setLoading(true);
       setError(null);
-      setCheckedItems({}); // Réinitialiser checkedItems
+      setCheckedItems({});
 
       const auditResponse = await fetch(`http://localhost:8080/Audit/${auditId}`);
       if (!auditResponse.ok) {
@@ -279,7 +380,11 @@ const Reponse = () => {
     }
   };
   
-  
+  const handleInitialPopupClose = (info) => {
+    setUserInfo(info);
+    setUserId(info.id);
+    setShowInitialPopup(false);
+  };
 
   if (loading) return <LinearProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
@@ -297,9 +402,17 @@ const Reponse = () => {
         color: theme.palette.text.primary,
       }}
     >
+      <InitialPopup open={showInitialPopup} onClose={handleInitialPopupClose} />
+    
       <Typography variant="h1" component="h1" sx={{ fontSize: '2.5rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px', color: '#C2002F' }}>
         Détails de l'Audit
       </Typography>
+
+      {userInfo && (
+        <Typography variant="subtitle1" sx={{ textAlign: 'center', marginBottom: '20px' }}>
+          Bienvenue, {userInfo.name}!
+        </Typography>
+      )}
 
       <Typography variant="h2" component="h2" sx={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '20px', color: theme.palette.text.primary }}>
         Formulaire: {formulaire.nom}
