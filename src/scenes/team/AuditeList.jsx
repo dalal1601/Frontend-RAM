@@ -10,7 +10,7 @@ import Header from "../../components/Header";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const Team = () => {
+const AuditeList = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [open, setOpen] = useState(false);
@@ -21,7 +21,7 @@ const Team = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch('http://localhost:8080/User');
+        const response = await fetch('http://localhost:8080/User/Audite');
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
@@ -38,7 +38,7 @@ const Team = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8080/User');
+      const response = await fetch('http://localhost:8080/User/Audite');
       if (!response.ok) {
         throw new Error('Failed to fetch users');
       }
@@ -46,6 +46,24 @@ const Team = () => {
       setUsers(data);
     } catch (error) {
       console.error('Error fetching users:', error);
+    }
+  };
+
+  const handleActivateUser = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/User/enable/${userId}`, {
+        method: 'PUT',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to activate user');
+      }
+      // Update the local state to reflect the change
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, enabled: true } : user
+      ));
+    } catch (error) {
+      console.error('Error activating user:', error);
+      setError('Failed to activate user. Please try again.');
     }
   };
 
@@ -70,19 +88,15 @@ const Team = () => {
       flex: 1,
       renderCell: (params) => (
         <Box display="flex" justifyContent="center" alignItems="center">
-          <IconButton
-            color="primary"
-            onClick={() => handleEdit(params.row)}
-            sx={{ mr: 1 }}
-          >
-            <EditIcon />
-          </IconButton>
-          <IconButton
-            color="error"
-            onClick={() => handleDelete(params.row.id)}
-          >
-            <DeleteIcon />
-          </IconButton>
+          {!params.row.enabled && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleActivateUser(params.row.id)}
+            >
+              Activer
+            </Button>
+          )}
         </Box>
       ),
     },
@@ -99,26 +113,12 @@ const Team = () => {
     handleOpen();
   };
 
-  const handleDelete = async (id) => {
-    try {
-      const response = await fetch(`http://localhost:8080/User/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete user');
-      }
-      fetchUsers(); // Refresh user list
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      setError('Failed to delete user. Please try again.');
-    }
-  };
+
 
   const handleFormSubmit = async (values, { resetForm }) => {
     try {
       let response;
-      if (selectedUser) {
-        // Update existing user
+      
         response = await fetch(`http://localhost:8080/User/${selectedUser.id}`, {
           method: 'PUT',
           headers: {
@@ -131,19 +131,7 @@ const Team = () => {
             role: "AUDITEUR", // Adjust as needed
           }),
         });
-      } else {
-        // Create new user
-        response = await fetch('http://localhost:8080/User', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fullname: `${values.firstName} ${values.lastName}`,
-            email: values.email,
-          }),
-        });
-      }
+      
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -181,9 +169,7 @@ const Team = () => {
     <Box m="20px">
       <Header title="TEAM" subtitle="Managing the Team Members" />
       <Box display="flex" justifyContent="flex-end" m="20px 0">
-        <Button variant="contained" color="primary" onClick={handleOpen}>
-          Créer un Auditeur
-        </Button>
+       
       </Box>
       <Box
         m="40px 0 0 0"
@@ -218,7 +204,7 @@ const Team = () => {
       </Box>
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>
-          {selectedUser ? "Edit Auditor" : "Create Auditor"}
+          {selectedUser ? "Vous voulez activer le comtpe de: " : "Create Auditor"}
           <IconButton
             aria-label="close"
             onClick={handleClose}
@@ -313,4 +299,4 @@ const Team = () => {
   );
 };
 
-export default Team;
+export default AuditeList;

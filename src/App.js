@@ -23,6 +23,8 @@ import Calendar from "./scenes/calendar/calendar";
 import Reponse from "./scenes/Reponse/Reponse";
 import Audits from "./scenes/Audits/Audits";
 import ProtectedRoute from "./ProtectedRoute";
+import AuditeList from "./scenes/team/AuditeList"
+import Loginch from "./scenes/Login/Loginch"
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -39,8 +41,7 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const isLoginPage = location.pathname === "/";
-
+  const isLoginPage = location.pathname === "/" || location.pathname === "/login";
   return (
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
@@ -54,7 +55,9 @@ function App() {
               {!isLoginPage && <Topbar setIsSidebar={setIsSidebar} />}
 
               <Routes>
-                <Route path="/" element={<Login />} />
+               
+                <Route path="/" element={<Loginch />} />
+                <Route path="login" element={<Login />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                 <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
@@ -71,6 +74,7 @@ function App() {
                 <Route path="/formulaire/:id" element={<ProtectedRoute><FormulaireDetail /></ProtectedRoute>} />
                 <Route path="/reponse/:auditId" element={<ProtectedRoute><Reponse /></ProtectedRoute>} />
                 <Route path="/Audits/:userId" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
+                <Route path="/AuditeList" element={<ProtectedRoute><AuditeList /></ProtectedRoute>} />
               </Routes>
             </main>
           </div>
