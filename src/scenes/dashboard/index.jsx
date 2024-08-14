@@ -1,287 +1,256 @@
-import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
-import { tokens } from "../../theme";
-import { mockTransactions } from "../../data/mockData";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import EmailIcon from "@mui/icons-material/Email";
-import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import TrafficIcon from "@mui/icons-material/Traffic";
+import React from "react";
+import { Box, Typography, Grid } from "@mui/material";
+import { styled, useTheme } from "@mui/system";
 import Header from "../../components/Header";
-import LineChart from "../../components/LineChart";
-import GeographyChart from "../../components/GeographyChart";
-import BarChart from "../../components/BarChart";
-import StatBox from "../../components/StatBox";
-import ProgressCircle from "../../components/ProgressCircle";
 
-const Dashboard = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+const StyledBox = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.background.default,
+  padding: "20px",
+  borderRadius: "8px",
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+}));
 
+const App = () => {
+  const theme = useTheme(); // Access the current theme
 
-  console.log("dash----------- "+localStorage.getItem("IdUser"));
+  const chartTheme = theme.palette.mode === "dark" ? "dark" : "light";
 
   return (
     <Box m="20px">
-      {/* HEADER */}
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
-
-        <Box>
-          <Button
-            sx={{
-              backgroundColor: colors.blueAccent[700],
-              color: colors.grey[100],
-              fontSize: "14px",
-              fontWeight: "bold",
-              padding: "10px 20px",
-            }}
-          >
-            <DownloadOutlinedIcon sx={{ mr: "10px" }} />
-            Download Reports
-          </Button>
-        </Box>
-      </Box>
-
-      {/* GRID & CHARTS */}
       <Box
-        display="grid"
-        gridTemplateColumns="repeat(12, 1fr)"
-        gridAutoRows="140px"
-        gap="20px"
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        mb={4} // Adds margin bottom to create space below the header
       >
-        {/* ROW 1 */}
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <StatBox
-            title="12,361"
-            subtitle="Emails Sent"
-            progress="0.75"
-            increase="+14%"
-            icon={
-              <EmailIcon
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <StatBox
-            title="431,225"
-            subtitle="Sales Obtained"
-            progress="0.50"
-            increase="+21%"
-            icon={
-              <PointOfSaleIcon
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <StatBox
-            title="32,441"
-            subtitle="New Clients"
-            progress="0.30"
-            increase="+5%"
-            icon={
-              <PersonAddIcon
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <StatBox
-            title="1,325,134"
-            subtitle="Traffic Received"
-            progress="0.80"
-            increase="+43%"
-            icon={
-              <TrafficIcon
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-
-        {/* ROW 2 */}
-        <Box
-          gridColumn="span 8"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-        >
-          <Box
-            mt="25px"
-            p="0 30px"
-            display="flex "
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.grey[100]}
-              >
-                Revenue Generated
-              </Typography>
-              <Typography
-                variant="h3"
-                fontWeight="bold"
-                color={colors.greenAccent[500]}
-              >
-                $59,342.32
-              </Typography>
-            </Box>
-            <Box>
-              <IconButton>
-                <DownloadOutlinedIcon
-                  sx={{ fontSize: "26px", color: colors.greenAccent[500] }}
-                />
-              </IconButton>
-            </Box>
-          </Box>
-          <Box height="250px" m="-20px 0 0 0">
-            <LineChart isDashboard={true} />
-          </Box>
-        </Box>
-        <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          overflow="auto"
-        >
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            borderBottom={`4px solid ${colors.primary[500]}`}
-            colors={colors.grey[100]}
-            p="15px"
-          >
-            <Typography color={colors.grey[100]} variant="h5" fontWeight="600">
-              Recent Transactions
-            </Typography>
-          </Box>
-          {mockTransactions.map((transaction, i) => (
-            <Box
-              key={`${transaction.txId}-${i}`}
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              borderBottom={`4px solid ${colors.primary[500]}`}
-              p="15px"
-            >
-              <Box>
-                <Typography
-                  color={colors.greenAccent[500]}
-                  variant="h5"
-                  fontWeight="600"
-                >
-                  {transaction.txId}
-                </Typography>
-                <Typography color={colors.grey[100]}>
-                  {transaction.user}
-                </Typography>
-              </Box>
-              <Box color={colors.grey[100]}>{transaction.date}</Box>
-              <Box
-                backgroundColor={colors.greenAccent[500]}
-                p="5px 10px"
-                borderRadius="4px"
-              >
-                ${transaction.cost}
-              </Box>
-            </Box>
-          ))}
-        </Box>
-
-        {/* ROW 3 */}
-        <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          p="30px"
-        >
-          <Typography variant="h5" fontWeight="600">
-            Campaign
-          </Typography>
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            mt="25px"
-          >
-            <ProgressCircle size="125" />
-            <Typography
-              variant="h5"
-              color={colors.greenAccent[500]}
-              sx={{ mt: "15px" }}
-            >
-              $48,352 revenue generated
-            </Typography>
-            <Typography>Includes extra misc expenditures and costs</Typography>
-          </Box>
-        </Box>
-        <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-        >
-          <Typography
-            variant="h5"
-            fontWeight="600"
-            sx={{ padding: "30px 30px 0 30px" }}
-          >
-            Sales Quantity
-          </Typography>
-          <Box height="250px" mt="-20px">
-            <BarChart isDashboard={true} />
-          </Box>
-        </Box>
-        <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          padding="30px"
-        >
-          <Typography
-            variant="h5"
-            fontWeight="600"
-            sx={{ marginBottom: "15px" }}
-          >
-            Geography Based Traffic
-          </Typography>
-          <Box height="200px">
-            <GeographyChart isDashboard={true} />
-          </Box>
-        </Box>
+        <Header title="TABLEAU DE BORD" subtitle="" />
       </Box>
+      <StyledBox>
+        <Typography
+          variant="h6"
+          align="center"
+          gutterBottom
+          sx={{
+            marginBottom: "20px",
+            color: theme.palette.mode === "dark" ? "#FFFFFF" : "#000000",
+          }}
+        >
+          Explorez les informations grâce à la visualisation des données en temps réel
+        </Typography>
+
+        {/* Grid for Tickets */}
+        <Grid container spacing={2} justifyContent="space-between">
+          <Grid item xs={12} sm={6} md={3}>
+            <Box
+              sx={{
+                position: "relative",
+                paddingTop: "75%",
+                overflow: "hidden",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                transition: "box-shadow 0.3s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                },
+              }}
+            >
+              <iframe
+                src={`https://charts.mongodb.com/charts-project-0-kdgpwce/embed/charts?id=66bcde68-9a98-44da-89ab-139624e23320&maxDataAge=3600&theme=${chartTheme}&autoRefresh=true`}
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+                title="MongoDB Atlas Chart 1"
+              ></iframe>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box
+              sx={{
+                position: "relative",
+                paddingTop: "75%",
+                overflow: "hidden",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                transition: "box-shadow 0.3s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                },
+              }}
+            >
+              <iframe
+                src={`https://charts.mongodb.com/charts-project-0-kdgpwce/embed/charts?id=66bcdd2b-9a98-4139-8eb1-139624d0a47f&maxDataAge=3600&theme=${chartTheme}&autoRefresh=true`}
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+                title="MongoDB Atlas Chart 2"
+              ></iframe>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box
+              sx={{
+                position: "relative",
+                paddingTop: "75%",
+                overflow: "hidden",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                transition: "box-shadow 0.3s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                },
+              }}
+            >
+              <iframe
+                src={`https://charts.mongodb.com/charts-project-0-kdgpwce/embed/charts?id=66bcddde-dda6-4c39-8dbc-7266a96c577c&maxDataAge=3600&theme=${chartTheme}&autoRefresh=true`}
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+                title="MongoDB Atlas Chart 3"
+              ></iframe>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box
+              sx={{
+                position: "relative",
+                paddingTop: "75%",
+                overflow: "hidden",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                transition: "box-shadow 0.3s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                },
+              }}
+            >
+              <iframe
+                src={`https://charts.mongodb.com/charts-project-0-kdgpwce/embed/charts?id=66bbb857-160a-4214-871f-7bacdf2b64e6&maxDataAge=3600&theme=${chartTheme}&autoRefresh=true`}
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+                title="MongoDB Atlas Chart 4"
+              ></iframe>
+            </Box>
+          </Grid>
+        </Grid>
+
+        {/* Grid for Larger Charts */}
+        <Grid container spacing={2} mt={4}>
+          <Grid item xs={12} md={6}>
+            <Box
+              sx={{
+                position: "relative",
+                paddingTop: "75%",
+                overflow: "hidden",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                transition: "box-shadow 0.3s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                },
+              }}
+            >
+              <iframe
+                src={`https://charts.mongodb.com/charts-project-0-kdgpwce/embed/charts?id=66bbb2bb-ee0b-4dc0-8b14-820a63b4373c&maxDataAge=3600&theme=${chartTheme}&autoRefresh=true`}
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+                title="MongoDB Atlas Chart 5"
+              ></iframe>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box
+              sx={{
+                position: "relative",
+                paddingTop: "75%",
+                overflow: "hidden",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                transition: "box-shadow 0.3s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                },
+              }}
+            >
+              <iframe
+                src={`https://charts.mongodb.com/charts-project-0-kdgpwce/embed/charts?id=66bbd067-160a-4463-81ca-7bacdfbeef34&maxDataAge=3600&theme=${chartTheme}&autoRefresh=true`}
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+                title="MongoDB Atlas Chart 6"
+              ></iframe>
+            </Box>
+          </Grid>
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                position: "relative",
+                paddingTop: "50%",
+                overflow: "hidden",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                transition: "box-shadow 0.3s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                },
+              }}
+            >
+              <iframe
+                src={`https://charts.mongodb.com/charts-project-0-kdgpwce/embed/charts?id=66bbd933-de7d-4e76-82a2-f5bc93eaeb3b&maxDataAge=3600&theme=${chartTheme}&autoRefresh=true`}
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+                title="MongoDB Atlas Chart 7"
+              ></iframe>
+            </Box>
+          </Grid>
+        </Grid>
+      </StyledBox>
     </Box>
   );
 };
 
-export default Dashboard;
+export default App;
