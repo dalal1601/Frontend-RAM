@@ -18,6 +18,9 @@ import { tokens } from "../../theme";
 import Tooltip from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 
+// Import the French locale
+import fr from '@fullcalendar/core/locales/fr'; 
+
 const Calendar = () => {
   const [openPopup, setOpenPopup] = useState(false);
   const [openEventPopup, setOpenEventPopup] = useState(false);
@@ -191,6 +194,7 @@ const Calendar = () => {
             listPlugin,
           ]}
           initialView="dayGridMonth"
+          locale={fr} // Apply French locale
           editable={true}
           selectable={true}
           selectMirror={true}
@@ -297,10 +301,10 @@ const Calendar = () => {
         title="Audit Details"
         content={
           <div>
-            <Typography variant="h6" sx={{ marginTop: '16px' }} >Formulaire: {popupContent.nomFormulaire}</Typography>
+            <Typography variant="h6" sx={{ marginTop: '16px' }}>Formulaire: {popupContent.nomFormulaire}</Typography>
             <Typography variant="h6">Ville d'escale: {popupContent.escaleVille}</Typography>
-            <Typography variant="h6">Date de Début: {new Date(popupContent.dateDebut).toLocaleDateString()}</Typography>
-            <Typography variant="h6">Date de Fin: {new Date(popupContent.dateFin).toLocaleDateString()}</Typography>
+            <Typography variant="h6">Date de Début: {new Date(popupContent.dateDebut).toLocaleDateString("fr-FR")}</Typography>
+            <Typography variant="h6">Date de Fin: {new Date(popupContent.dateFin).toLocaleDateString("fr-FR")}</Typography>
           </div>
         }
       />
