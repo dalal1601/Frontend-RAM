@@ -1,24 +1,13 @@
-import { Box, useTheme } from "@mui/material";
-import GeographyChart from "../../components/GeographyChart";
-import Header from "../../components/Header";
-import { tokens } from "../../theme";
+// src/App.js
+import React from 'react';
+import CityMap from '../../components/CityMap';
 
-const Geography = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+const App = () => {
   return (
-    <Box m="20px">
-      <Header title="Geography" subtitle="Simple Geography Chart" />
-
-      <Box
-        height="75vh"
-        border={`1px solid ${colors.grey[100]}`}
-        borderRadius="4px"
-      >
-        <GeographyChart />
-      </Box>
-    </Box>
+    <div>
+      <CityMap />
+    </div>
   );
 };
 
-export default Geography;
+export default App;
