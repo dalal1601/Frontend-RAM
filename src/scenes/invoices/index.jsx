@@ -1,8 +1,8 @@
-// src/pages/ActionsCorrectives.js
 import React, { useState, useEffect } from 'react';
 import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, LinearProgress, Snackbar, Alert, Checkbox, Button, Box } from '@mui/material';
 import { useParams } from 'react-router-dom';
 
+// Fetch audits by userId
 const fetchAuditsByUserId = async (userId) => {
   try {
     const response = await fetch(`http://localhost:8080/Audit/audite/${userId}`);
@@ -18,6 +18,7 @@ const fetchAuditsByUserId = async (userId) => {
   }
 };
 
+// Fetch action correctives by auditId
 const fetchActionCorrectivesByAuditId = async (auditId) => {
   try {
     const response = await fetch(`http://localhost:8080/ActionCorrective/audit/${auditId}`);
@@ -30,34 +31,50 @@ const fetchActionCorrectivesByAuditId = async (auditId) => {
   }
 };
 
-const updateActionCorrectives = async (actionCorrectives) => {
+// Fetch action corrective status by userId and auditId
+const fetchActionCorrectiveStatus = async (userId, auditId) => {
   try {
-    const response = await fetch(`http://localhost:8080/ActionCorrective/update`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(actionCorrectives),
-    });
+    const response = await fetch(`http://localhost:8080/ActionCorrectiveStatus/${userId}/${auditId}`);
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Update failed:', errorText);
       throw new Error('Network response was not ok');
     }
     return await response.json();
   } catch (error) {
-    console.error(`Updating action correctives failed: ${error.message}`);
-    throw new Error(`Updating action correctives failed: ${error.message}`);
+    throw new Error(`Fetching action corrective status failed: ${error.message}`);
+  }
+};
+
+// Save or update action correctives
+const saveActionCorrectiveStatus = async (actionCorrectiveStatus) => {
+  try {
+    const response = await fetch('http://localhost:8080/ActionCorrectiveStatus/saveOrUpdate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(actionCorrectiveStatus),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Save or update failed:', errorText);
+      throw new Error('Network response was not ok');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Saving or updating action correctives failed: ${error.message}`);
+    throw new Error(`Saving or updating action correctives failed: ${error.message}`);
   }
 };
 
 const ActionsCorrectives = () => {
   const [actionCorrectives, setActionCorrectives] = useState([]);
+  const [actionCorrectiveStatus, setActionCorrectiveStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const { userId } = useParams();
 
+  // Fetch audits, action correctives, and their statuses
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -68,7 +85,19 @@ const ActionsCorrectives = () => {
       if (audits.length > 0) {
         const auditId = audits[0].id;
         const actions = await fetchActionCorrectivesByAuditId(auditId);
-        setActionCorrectives(actions);
+        const status = await fetchActionCorrectiveStatus(userId, auditId);
+
+        // Map action IDs to their `done` status
+        const actionStatusMap = status.actionsState || {};
+
+        // Update action correctives with their status
+        const updatedActions = actions.map(action => ({
+          ...action,
+          done: actionStatusMap[action.id] || false
+        }));
+
+        setActionCorrectives(updatedActions);
+        setActionCorrectiveStatus(status);
       } else {
         setError('Aucun audit trouvé pour cet utilisateur.');
       }
@@ -79,6 +108,7 @@ const ActionsCorrectives = () => {
     }
   };
 
+  // Handle checkbox change
   const handleCheckboxChange = (id) => {
     setActionCorrectives(prevActions =>
       prevActions.map(action =>
@@ -87,14 +117,38 @@ const ActionsCorrectives = () => {
     );
   };
 
+  // Save action corrective status
   const handleSave = async () => {
-    try {
-      await updateActionCorrectives(actionCorrectives);
+    const actionCorrectiveStatus = {
+      userId: userId,
+      auditId: actionCorrectives[0]?.auditId,
+      actionsState: actionCorrectives.reduce((acc, action) => {
+        acc[action.id] = action.done;
+        return acc;
+      }, {}),
+    };
+  
+    console.log('Payload being sent:', JSON.stringify(actionCorrectiveStatus));
+  
+    // Send the save request
+    const response = await fetch('http://localhost:8080/ActionCorrectiveStatus/saveOrUpdate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(actionCorrectiveStatus),
+    });
+  
+    // Check if the response is OK
+    if (response.ok) {
       setSuccess('Les actions correctives ont été mises à jour avec succès.');
-    } catch (err) {
-      setError(`Erreur lors de la sauvegarde: ${err.message}`);
+    } else {
+      const errorText = await response.text();
+      setSuccess(`Erreur lors de la sauvegarde: ${errorText}`);
     }
   };
+  
+  
 
   useEffect(() => {
     fetchData();
