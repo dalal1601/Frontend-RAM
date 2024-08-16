@@ -1,83 +1,185 @@
-import { Box, Typography, useTheme } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
-import { tokens } from "../../theme";
-import { mockDataInvoices } from "../../data/mockData";
-import Header from "../../components/Header";
+// src/pages/ActionsCorrectives.js
+import React, { useState, useEffect } from 'react';
+import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, LinearProgress, Snackbar, Alert, Checkbox, Button, Box } from '@mui/material';
+import { useParams } from 'react-router-dom';
 
-const Invoices = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-  const columns = [
-    { field: "id", headerName: "ID" },
-    {
-      field: "name",
-      headerName: "Name",
-      flex: 1,
-      cellClassName: "name-column--cell",
-    },
-    {
-      field: "phone",
-      headerName: "Phone Number",
-      flex: 1,
-    },
-    {
-      field: "email",
-      headerName: "Email",
-      flex: 1,
-    },
-    {
-      field: "cost",
-      headerName: "Cost",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography color={colors.greenAccent[500]}>
-          ${params.row.cost}
-        </Typography>
-      ),
-    },
-    {
-      field: "date",
-      headerName: "Date",
-      flex: 1,
-    },
-  ];
+const fetchAuditsByUserId = async (userId) => {
+  try {
+    const response = await fetch(`http://localhost:8080/Audit/audite/${userId}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Fetch failed:', errorText);
+      throw new Error('Network response was not ok');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Fetching audits failed: ${error.message}`);
+    throw new Error(`Fetching audits failed: ${error.message}`);
+  }
+};
+
+const fetchActionCorrectivesByAuditId = async (auditId) => {
+  try {
+    const response = await fetch(`http://localhost:8080/ActionCorrective/audit/${auditId}`);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Fetching action correctives failed: ${error.message}`);
+  }
+};
+
+const updateActionCorrectives = async (actionCorrectives) => {
+  try {
+    const response = await fetch(`http://localhost:8080/ActionCorrective/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(actionCorrectives),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Update failed:', errorText);
+      throw new Error('Network response was not ok');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Updating action correctives failed: ${error.message}`);
+    throw new Error(`Updating action correctives failed: ${error.message}`);
+  }
+};
+
+const ActionsCorrectives = () => {
+  const [actionCorrectives, setActionCorrectives] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const { userId } = useParams();
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const audits = await fetchAuditsByUserId(userId);
+
+      if (audits.length > 0) {
+        const auditId = audits[0].id;
+        const actions = await fetchActionCorrectivesByAuditId(auditId);
+        setActionCorrectives(actions);
+      } else {
+        setError('Aucun audit trouvé pour cet utilisateur.');
+      }
+    } catch (err) {
+      setError(`Erreur lors de la récupération des données: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckboxChange = (id) => {
+    setActionCorrectives(prevActions =>
+      prevActions.map(action =>
+        action.id === id ? { ...action, done: !action.done } : action
+      )
+    );
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateActionCorrectives(actionCorrectives);
+      setSuccess('Les actions correctives ont été mises à jour avec succès.');
+    } catch (err) {
+      setError(`Erreur lors de la sauvegarde: ${err.message}`);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [userId]);
+
+  if (loading) return <LinearProgress />;
+  if (error) return <Typography color="error">{error}</Typography>;
 
   return (
-    <Box m="20px">
-      <Header title="INVOICES" subtitle="List of Invoice Balances" />
+    <Paper
+      sx={{
+        width: '100%',
+        overflow: 'hidden',
+        padding: 3,
+        margin: 'auto',
+        maxWidth: 1000,
+      }}
+    >
+      <Typography variant="h1" component="h1" sx={{ fontSize: '2.5rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px' }}>
+        Actions Correctives Non Conformes
+      </Typography>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>Description(s)</strong></TableCell>
+              <TableCell><strong>Status</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {actionCorrectives.map(action => (
+              <TableRow key={action.id}>
+                <TableCell>{action.descriptions.join(', ')}</TableCell>
+                <TableCell>
+                  <Checkbox
+                    checked={action.done}
+                    onChange={() => handleCheckboxChange(action.id)}
+                    sx={{
+                      color: 'red',
+                      '&.Mui-checked': {
+                        color: 'red',
+                      },
+                    }}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <Box
-        m="40px 0 0 0"
-        height="75vh"
         sx={{
-          "& .MuiDataGrid-root": {
-            border: "none",
-          },
-          "& .MuiDataGrid-cell": {
-            borderBottom: "none",
-          },
-          "& .name-column--cell": {
-            color: colors.greenAccent[300],
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: colors.blueAccent[700],
-            borderBottom: "none",
-          },
-          "& .MuiDataGrid-virtualScroller": {
-            backgroundColor: colors.primary[400],
-          },
-          "& .MuiDataGrid-footerContainer": {
-            borderTop: "none",
-            backgroundColor: colors.blueAccent[700],
-          },
-          "& .MuiCheckbox-root": {
-            color: `${colors.greenAccent[200]} !important`,
-          },
+          display: 'flex',
+          justifyContent: 'center',
+          marginTop: 2,
         }}
       >
-        <DataGrid checkboxSelection rows={mockDataInvoices} columns={columns} />
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleSave}
+        >
+          Enregistrer
+        </Button>
       </Box>
-    </Box>
+      <Snackbar
+        open={Boolean(error)}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+      >
+        <Alert onClose={() => setError(null)} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        open={Boolean(success)}
+        autoHideDuration={6000}
+        onClose={() => setSuccess(null)}
+      >
+        <Alert onClose={() => setSuccess(null)} severity="success">
+          {success}
+        </Alert>
+      </Snackbar>
+    </Paper>
   );
 };
 
-export default Invoices;
+export default ActionsCorrectives;
