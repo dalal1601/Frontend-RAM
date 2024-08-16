@@ -44,7 +44,7 @@ const fetchActionCorrectiveStatus = async (userId, auditId) => {
   }
 };
 
-// Save or update action correctives
+// Save or update action correctives .........
 const saveActionCorrectiveStatus = async (actionCorrectiveStatus) => {
   try {
     const response = await fetch('http://localhost:8080/ActionCorrectiveStatus/saveOrUpdate', {

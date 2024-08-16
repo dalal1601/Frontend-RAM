@@ -47,7 +47,7 @@ const Sidebar = () => {
   const [selected, setSelected] = useState("Dashboard");
   const userId = useCurrentUserId(); // Retrieve current user ID
   const userDetails = useUserDetails(); 
-  //console.log('Sidebar userDetails:', userDetails); 
+  //console.log('Sidebar userDetails:', userDetails); //testiiing 
 
   return (
     <Box
