@@ -57,18 +57,24 @@ const SectionRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
+
 const InitialPopup = ({ open, onClose }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState(null);
 
+  const { auditId } = useParams();
+
+
   const handleSubmit = async () => {
+
+
     if (name && email) {
       setLoading(true);
       setError(null);
     try{
-      const response = await fetch('http://localhost:8080/User/addAudit',{
+      const response = await fetch(`http://localhost:8080/User/addAudit?auditId=${encodeURIComponent(auditId)}`,{
         method:'POST',
         headers:{
           'Content-Type':'application/json',
@@ -218,6 +224,8 @@ const Reponse = () => {
 
 
   const { auditId } = useParams();
+
+  console.log('hii osdf '+`${encodeURIComponent(auditId)}`)
 
   const fetchAuditAndFormulaire = async () => {
     try {
