@@ -304,93 +304,131 @@ const Reponse = () => {
   const handleConfirmSave = async () => {
     setIsSubmitting(true);
     setOpenConfirmDialog(false);
-  
+
     const reponses = Object.entries(checkedItems).map(([regleId, value]) => ({
-      [regleId]: value === 'Conform'
+        [regleId]: value === 'Conform'
     }));
-  
+
     const payload = {
-      audit: { id: auditId },
-      reponses: reponses,
+        audit: { id: auditId },
+        reponses: reponses,
     };
-  
+
+    // Fetch Regles and their associated actionCorrectives
+    const reglesResponse = await fetch('http://localhost:8080/Regle');
+    const regles = await reglesResponse.json();
+
+    const regleMap = regles.reduce((map, regle) => {
+        map[regle.id] = regle;
+        return map;
+    }, {});
+
+    // Create ActionCorrective objects from non-conforming actions
+    const nonConformingActions = Object.entries(checkedItems)
+        .filter(([regleId, value]) => value === 'Non-Conform')
+        .map(([regleId]) => {
+            const regle = regleMap[regleId];
+            return {
+                auditId: auditId,
+                descriptions: [regle ? regle.actionCorrective : `Corrective action required for rule ${regleId}`]
+            };
+        });
+
     try {
-      // Save the response
-      const response = await fetch('http://localhost:8080/Reponse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Failed to save data:', errorData);
-        throw new Error(errorData || 'Failed to save data');
-      }
-  
-      const result = await response.json();
-      setAudit(result.audit);
-  
-      if (!result.id) {
-        throw new Error('Missing reponseId from save response');
-      }
-  
-      // Save the PDF
-      const pdfResponse = await fetch('http://localhost:8080/Reponse/save-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rapportId: result.id,
-        }),
-      });
-  
-      if (!pdfResponse.ok) {
-        const errorText = await pdfResponse.text();
-        console.error('Failed to save PDF:', errorText);
-        throw new Error(errorText || 'Failed to save PDF');
-      }
-  
-      // Send the first email
-      const emailResponse1 = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reponseId: result.id }),
-      });
-  
-      if (!emailResponse1.ok) {
-        const errorText = await emailResponse1.text();
-        console.error('Failed to send email:', errorText);
-        throw new Error(errorText || 'Failed to send email');
-      }
-  
-      // Send the second email
-      const emailResponse2 = await fetch('http://localhost:8080/Reponse/send-pdf-email2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reponseId: result.id }),
-      });
-  
-      if (!emailResponse2.ok) {
-        const errorText = await emailResponse2.text();
-        console.error('Failed to send email:', errorText);
-        throw new Error(errorText || 'Failed to send email');
-      }
-  
-      setSnackbar({ open: true, message: 'Données enregistrées et emails envoyés avec succès!', severity: 'success' });
+        // Save the response
+        const response = await fetch('http://localhost:8080/Reponse', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Failed to save data:', errorData);
+            throw new Error(errorData || 'Failed to save data');
+        }
+
+        const result = await response.json();
+        setAudit(result.audit);
+
+        if (!result.id) {
+            throw new Error('Missing reponseId from save response');
+        }
+
+        // Save ActionCorrective objects if there are any non-conforming actions
+        if (nonConformingActions.length > 0) {
+            const actionCorrectiveResponse = await fetch('http://localhost:8080/ActionCorrective/save-bulk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(nonConformingActions),
+            });
+
+            if (!actionCorrectiveResponse.ok) {
+                const errorText = await actionCorrectiveResponse.text();
+                console.error('Failed to save ActionCorrective:', errorText);
+                throw new Error(errorText || 'Failed to save ActionCorrective');
+            }
+        }
+
+        // Save the PDF
+        const pdfResponse = await fetch('http://localhost:8080/Reponse/save-pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                rapportId: result.id,
+            }),
+        });
+
+        if (!pdfResponse.ok) {
+            const errorText = await pdfResponse.text();
+            console.error('Failed to save PDF:', errorText);
+            throw new Error(errorText || 'Failed to save PDF');
+        }
+
+        // Send the first email
+        const emailResponse1 = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reponseId: result.id }),
+        });
+
+        if (!emailResponse1.ok) {
+            const errorText = await emailResponse1.text();
+            console.error('Failed to send email:', errorText);
+            throw new Error(errorText || 'Failed to send email');
+        }
+
+        // Send the second email
+        const emailResponse2 = await fetch('http://localhost:8080/Reponse/send-pdf-email2', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reponseId: result.id }),
+        });
+
+        if (!emailResponse2.ok) {
+            const errorText = await emailResponse2.text();
+            console.error('Failed to send email:', errorText);
+            throw new Error(errorText || 'Failed to send email');
+        }
+
+        setSnackbar({ open: true, message: 'Données enregistrées et emails envoyés avec succès!', severity: 'success' });
     } catch (error) {
-      setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+        setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  };
+};
+
   
   const handleInitialPopupClose = (info) => {
     setUserInfo(info);
