@@ -18,6 +18,8 @@ import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import useCurrentUserId from "../../hook/useCurrentUserId";
+import useUserDetails from '../../hook/useUserDetails'; // Adjust the path as needed
+
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
@@ -44,6 +46,8 @@ const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
   const userId = useCurrentUserId(); // Retrieve current user ID
+  const userDetails = useUserDetails(); 
+  //console.log('Sidebar userDetails:', userDetails); 
 
   return (
     <Box
@@ -84,7 +88,7 @@ const Sidebar = () => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                  ADMINIS
+                {userDetails ? userDetails.role : "Loading..."}
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -104,13 +108,13 @@ const Sidebar = () => {
                 />
               </Box>
               <Box textAlign="center">
-                <Typography
+              <Typography
                   variant="h2"
                   color={colors.grey[100]}
                   fontWeight="bold"
                   sx={{ m: "10px 0 0 0" }}
                 >
-                  Ed Roh
+                  {userDetails ? userDetails.fullname : "Loading..."}
                 </Typography>
                 <Typography variant="h5" color={colors.greenAccent[500]}>
                   VP Fancy Admin
@@ -157,8 +161,8 @@ const Sidebar = () => {
               setSelected={setSelected}
             />
             <Item
-              title="Invoices Balances"
-              to={`/invoices/${userId}`}
+              title="Actions Correctives"
+              to={`/actions/${userId}`}
               icon={<ReceiptOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
