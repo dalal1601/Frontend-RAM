@@ -10,7 +10,7 @@ import Bar from "./scenes/bar";
 import LoadingAnimation from "./components/LoadingAnimation";
 import Form from "./scenes/form";
 import Line from "./scenes/line";
-import Pie from "./scenes/pie";
+import ChatRoom from "./scenes/chat";
 import FAQ from "./scenes/faq";
 import Login from "./scenes/Login/Login";
 import AuditForm from "./scenes/Formulaire/Formulaire";
@@ -64,7 +64,7 @@ function App() {
                 <Route path="/actions/:userId" element={<ProtectedRoute><Actions /></ProtectedRoute>} />
                 <Route path="/form" element={<ProtectedRoute><Form /></ProtectedRoute>} />
                 <Route path="/bar" element={<ProtectedRoute><Bar /></ProtectedRoute>} />
-                <Route path="/pie" element={<ProtectedRoute><Pie /></ProtectedRoute>} />
+                <Route path="/chat/:userId" element={<ProtectedRoute><ChatRoom /></ProtectedRoute>} />
                 <Route path="/line" element={<ProtectedRoute><Line /></ProtectedRoute>} />
                 <Route path="/AuditForm" element={<ProtectedRoute><AuditForm /></ProtectedRoute>} />
                 <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />

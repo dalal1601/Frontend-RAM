@@ -12,13 +12,14 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
-import PieChartOutlineOutlinedIcon from "@mui/icons-material/PieChartOutlineOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import useCurrentUserId from "../../hook/useCurrentUserId";
 import useUserDetails from '../../hook/useUserDetails'; // Adjust the path as needed
+import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
+
 
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
@@ -227,9 +228,9 @@ const Sidebar = () => {
               setSelected={setSelected}
             />
             <Item
-              title="Pie Chart"
-              to="/pie"
-              icon={<PieChartOutlineOutlinedIcon />}
+              title="Chat"
+              to={`/chat/${userId}`}
+              icon={<ChatBubbleOutlineOutlinedIcon/>}
               selected={selected}
               setSelected={setSelected}
             />
