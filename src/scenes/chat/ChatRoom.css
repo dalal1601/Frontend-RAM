@@ -10,7 +10,7 @@
 
         .chat-card {
             width: 800px; /* Increased width */
-            height: 90vh; /* Set height to fill the screen minus some space */
+            height: 90vh; 
             display: flex;
             flex-direction: column;
             border-radius: 15px;
