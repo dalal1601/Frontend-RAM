@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Stomp } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import useUserDetails from '../../hook/useUserDetails';
+import './ChatRoom.css';
+import Header from "../../components/Header";
 
 let stompClient = null;
 
@@ -15,7 +17,8 @@ const ChatRoom = () => {
         connected: false,
         message: ''
     });
-    const [userFullNames, setUserFullNames] = useState(new Map()); 
+    const [userFullNames, setUserFullNames] = useState(new Map());
+    const [translations, setTranslations] = useState(new Map()); // State for translations
     const userDetails = useUserDetails();
     const messagesEndRef = useRef(null); // Reference for initial scroll
 
@@ -75,7 +78,6 @@ const ChatRoom = () => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
             setPublicChats(prevChats => [...prevChats, payloadData]);
-            // Fetch or update the full name of the sender
             fetchUserFullName(payloadData.sender);
         }
     };
@@ -90,7 +92,6 @@ const ChatRoom = () => {
             updatedChats.get(payloadData.sender).push(payloadData);
             return updatedChats;
         });
-        // Fetch or update the full name of the sender
         fetchUserFullName(payloadData.sender);
     };
 
@@ -127,7 +128,7 @@ const ChatRoom = () => {
             console.error('Error fetching messages:', error);
         }
     };
-    
+
     const fetchUserFullName = async (username) => {
         try {
             const response = await fetch(`http://localhost:8080/api/users/${username}`, {
@@ -188,8 +189,59 @@ const ChatRoom = () => {
         connect();
     };
 
+    const translateMessage = async (message) => {
+        try {
+            const response = await fetch('http://localhost:8080/api/chat/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(message)
+            });
+    
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+    
+            const data = await response.json();
+    
+            // Assuming the response is an array with a single object containing translation_text
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0].translation_text;
+            }
+    
+            return 'Traduction non disponible';
+        } catch (error) {
+            console.error('Error translating message:', error);
+            return 'Traduction non disponible';
+        }
+    };
+    
+    
+
+    const handleTranslate = async (message) => {
+    try {
+        const translation = await translateMessage({
+            message: {
+                sender: message.sender,
+                content: message.content,
+                type: message.type
+            }
+        });
+
+        // Update translation for the specific message ID
+        setTranslations(prevTranslations => new Map(prevTranslations).set(message.id, translation || 'Traduction non disponible'));
+    } catch (error) {
+        console.error('Error translating message:', error);
+    }
+};
+
+    
+
     return (
         <div className="container">
+            <Header />
             <div className="chat-card">
                 <div className="chat-header">
                     <h3>Conversation</h3>
@@ -204,14 +256,27 @@ const ChatRoom = () => {
                                 <div className="message-info">
                                     <small className="message-sender">{userFullNames.get(message.sender) || message.sender}</small>
                                     <div className="message-data">
-                                        {message.content}
-                                    </div>
+    {message.content}
+    <span
+        className="translate-link"
+        onClick={() => handleTranslate(message)}
+    >
+        Traduire
+    </span>
+    {translations.get(message.id) && (
+        <div className="translated-message">
+            <strong>Traduction :</strong> {translations.get(message.id)}
+        </div>
+    )}
+</div>
+
                                 </div>
                             </li>
                         ))}
                         <div ref={messagesEndRef} /> {/* Initial scroll to bottom */}
                     </ul>
                 </div>
+    
                 <div className="chat-footer">
                     <input
                         className="input-message"
@@ -228,145 +293,10 @@ const ChatRoom = () => {
                     </button>
                 </div>
             </div>
-            <style>
-    {`
-        .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f5f5f5;
-            font-family: Arial, sans-serif;
-        }
-
-        .chat-card {
-            width: 800px; /* Increased width */
-            height: 90vh; /* Set height to fill the screen minus some space */
-            display: flex;
-            flex-direction: column;
-            border-radius: 15px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            background-color: #ffffff;
-            overflow: hidden;
-        }
-
-        .chat-header {
-            padding: 15px;
-            background-color: #e61919; /* Red color */
-            color: white;
-            text-align: center;
-            font-size: 20px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .chat-body {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 15px;
-            overflow-y: auto;
-            background-color: #f9f9f9;
-        }
-
-        .chat-messages {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .message {
-            display: flex;
-            align-items: flex-end; /* Align items to the bottom */
-        }
-
-        .message.self {
-            justify-content: flex-end;
-        }
-
-        .avatar {
-            background-color: #d11507;
-            color: white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0px; /* Margin on both sides */
-            font-weight: bold;
-        }
-
-        .avatar.self {
-            order: 2; /* Move avatar to the right */
-            margin-left: 0; /* Remove left margin */
-            margin-right: 0; /* Remove right margin */
-        }
-
-        .message-info {
-            max-width: 70%;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end; /* Align text to the end for self messages */
-        }
-
-        .message-sender {
-            font-weight: bold;
-            text-align: left;
-        }
-
-        .message-data {
-            padding: 10px;
-            border-radius: 10px;
-            background-color: #e9ecef;
-            display: inline-block; /* Make message data inline */
-        }
-
-        .message.self .message-data {
-            background-color: #ff7b5a;
-            color: white;
-        }
-
-        .chat-footer {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            border-top: 1px solid #ddd;
-            background-color: #ffffff;
-        }
-
-        .input-message {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            margin-right: 10px;
-            font-size: 16px;
-            line-height: 1.5;
-            resize: none;
-        }
-
-        .send-button {
-            padding: 10px 20px;
-            background-color: #e61919; /* Red color */
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        .send-button:hover {
-            background-color: #c81010; /* Darker red */
-        }
-    `}
-</style>
-
+            
         </div>
     );
+    
 };
 
 export default ChatRoom;
-///

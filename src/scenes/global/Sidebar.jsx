@@ -49,6 +49,28 @@ const Sidebar = () => {
   const userId = useCurrentUserId(); // Retrieve current user ID
   const userDetails = useUserDetails(); 
   //console.log('Sidebar userDetails:', userDetails); //testiiing 
+  const fullNameStyle = {
+    fontSize: "26px",
+    fontWeight: 700,
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    width: "160px",
+    textAlign: "center",
+    margin: "auto",
+    whiteSpace: "nowrap",
+    paddingBottom: "13px",
+    position: "relative",
+    display: "inline-block"
+  };
+
+  const fullNameBeforeAfterStyle = {
+    content: '""',
+    display: "block",
+    height: "3px",
+    width: "75px",
+    backgroundColor: "#c50000",
+    position: "absolute"
+  };
 
   return (
     <Box
@@ -89,7 +111,12 @@ const Sidebar = () => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                {userDetails ? userDetails.role : "Loading..."}
+                <img
+                  alt="profile-user"
+                  width="80px"
+                  height="50px"
+                  src={`../../assets/logoRAM.png`}
+                />
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -100,25 +127,20 @@ const Sidebar = () => {
 
           {!isCollapsed && (
             <Box mb="25px">
-              <Box display="flex" justifyContent="center" alignItems="center">
-                <img
-                  alt="profile-user"
-                  width="100px"
-                  height="100px"
-                  src={`../../assets/images.png`}
-                />
-              </Box>
+              
               <Box textAlign="center">
               <Typography
                   variant="h2"
                   color={colors.grey[100]}
                   fontWeight="bold"
-                  sx={{ m: "10px 0 0 0" }}
+                  sx={{ m: "10px 0 0 0", ...fullNameStyle }}
                 >
                   {userDetails ? userDetails.fullname : "Loading..."}
+                  <span style={{ ...fullNameBeforeAfterStyle, top: "-10px", left: "0" }}></span>
+                  <span style={{ ...fullNameBeforeAfterStyle, bottom: "0", right: "0" }}></span>
                 </Typography>
-                <Typography variant="h5" color={colors.greenAccent[500]}>
-                  VP Fancy Admin
+                <Typography marginTop={1} variant="h5" color="#333">
+                {userDetails ? userDetails.role : "Loading..."}
                 </Typography>
               </Box>
             </Box>
@@ -138,24 +160,24 @@ const Sidebar = () => {
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
-              Data
+              Utilisateurs
             </Typography>
             <Item
-              title="Manage Team"
+              title="Auditeurs"
               to="/team"
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
              <Item
-              title="Audite List"
+              title="Audités List"
               to="/AuditeList"
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
             <Item
-              title="Contacts Information"
+              title="Utilisateurs"
               to="/contacts"
               icon={<ContactsOutlinedIcon />}
               selected={selected}
@@ -174,7 +196,7 @@ const Sidebar = () => {
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
-              Pages
+              Audits
             </Typography>
             <Item
               title="Profile Form"
