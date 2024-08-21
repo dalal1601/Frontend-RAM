@@ -257,6 +257,7 @@ const FormulaireDetail = () => {
                         placeholder="Règle"
                         error={!regle.description}
                         fullWidth
+                        sx={{ marginBottom:3 }}
                       />
                       <TextField
                         value={regle.actionCorrective}
