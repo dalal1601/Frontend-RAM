@@ -38,6 +38,8 @@ const Topbar = () => {
     }
   }, []);
 
+  
+
   const fetchNotifications = async (idMongo) => {
     try {
       const response = await axios.get(`http://localhost:8080/User/notification?idMongo=${idMongo}`);
@@ -49,6 +51,11 @@ const Topbar = () => {
       }
     }
   };
+
+
+
+
+
 
   const handleNotificationClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -70,19 +77,10 @@ const Topbar = () => {
   return (
     <Box display="flex" justifyContent="space-between" p={2}>
       {/* SEARCH BAR */}
-      <Box
-        display="flex"
-        backgroundColor={colors.primary[400]}
-        borderRadius="3px"
-      >
-        <InputBase sx={{ ml: 2, flex: 1 }} placeholder="Search" />
-        <IconButton type="button" sx={{ p: 1 }}>
-          <SearchIcon />
-        </IconButton>
-      </Box>
+  
 
       {/* ICONS */}
-      <Box display="flex">
+      <Box display="flex" marginLeft="1100px">
         <IconButton onClick={colorMode.toggleColorMode}>
           {theme.palette.mode === "dark" ? (
             <DarkModeOutlinedIcon />
