@@ -50,18 +50,32 @@ export default function Login() {
     try {
       const response = await fetch("http://localhost:8080/User/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ username: email, password }),
       });
-      if (response.ok) {
-        const data = await response.json();
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Login failed");
+      }
+  
+      const data = await response.json();
+      console.log("Login response:", data);
+
+      if (data.access_token && data.idMongo) {
         localStorage.setItem("token", data.access_token);
+        localStorage.setItem("idmongo", data.idMongo);
+        console.log("idMongo stored in localStorage:", data.idMongo);
         navigate("/dashboard");
       } else {
-        showSnackbar("Les informations que vous avez saisies sont incorrectes", "error");
+        throw new Error("Login successful but required data is missing");
       }
     } catch (error) {
-      showSnackbar("Erreur lors de la connexion", "error");
+      console.error("Login error:", error);
+      
+      setOpenSnackbar(true);
     }
   };
 

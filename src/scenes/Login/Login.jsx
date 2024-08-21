@@ -30,39 +30,42 @@ export default function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault();
   
+    try {
+      const response = await fetch("http://localhost:8080/User/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: email, password }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Login failed");
+      }
+  
+      const data = await response.json();
+      console.log("Login response:", data);
 
-    try{
+      const idodi = JSON.parse(atob(data.access_token.split('.')[1]));
+      const idm9ad=idodi.sub;
 
-        const response = await fetch("http://localhost:8080/User/login", {
-            method:"POST",
-            headers:{
-                "Content-Type": "application/json",
-            },
-            body:JSON.stringify({username:email,password}),
-        });
-
-        if(!response.ok){
-            const errorData = await response.json();
-            throw new Error ( errorData.error || "Login failed");
-        }
-        const data = await response.json();
-
-        const idodi = JSON.parse(atob(data.access_token.split('.')[1]));
-
-       const idm9ad=idodi.sub; console.log("------------ id: " + idodi.sub);
-         console.log("all data : ßßßßßßßß :", data); 
-         localStorage.setItem("token",data.access_token);
-          localStorage.setItem("IdUser",idm9ad)
-
-
-
+      if (data.access_token && data.idMongo) {
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("idmongo", data.idMongo);
+        localStorage.setItem("id",idm9ad)
+        console.log("idMongo stored in localStorage:", data.idMongo);
         navigate("/dashboard");
-    }catch(error){
-       
-        setOpenSnackbar(true);
+      } else {
+        throw new Error("Login successful but required data is missing");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError(error.message);
+      setOpenSnackbar(true);
     }
+  };
 
-  }
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
