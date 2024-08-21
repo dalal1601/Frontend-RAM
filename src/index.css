@@ -8,6 +8,9 @@ body,
   height: 100%;
   width: 100%;
   font-family: "Source Sans Pro", sans-serif;
+  flex: 1; /* Fills the remaining space */
+  overflow-y: auto; /* Allows scrolling when content overflows */
+  scroll-behavior: smooth; /* Smooth scrolling */
 }
 
 .app {
@@ -15,21 +18,31 @@ body,
   position: relative;
 }
 
+/* Customize Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: #e0e0e0;
+  background: #f0f0f0;
+  border-radius: 10px;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: linear-gradient(180deg, #404040, #404040);
+  border-radius: 10px;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: linear-gradient(180deg, #808080, #808080);
+}
+
+/* Adjust for Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: linear-gradient(180deg, #28282B, #28282B) #f0f0f0;
 }
