@@ -63,10 +63,15 @@ export default function Login() {
   
       const data = await response.json();
       console.log("Login response:", data);
+      
+      const idodi = JSON.parse(atob(data.access_token.split('.')[1]));
+      const idm9ad=idodi.sub;
 
       if (data.access_token && data.idMongo) {
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("idmongo", data.idMongo);
+        localStorage.setItem("id",idm9ad)
+
         console.log("idMongo stored in localStorage:", data.idMongo);
         navigate("/dashboard");
       } else {

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, LinearProgress, Snackbar, Alert, Checkbox, Button, Box } from '@mui/material';
-import { useParams } from 'react-router-dom';
+import { useParams,useNavigate  } from 'react-router-dom';
+
 
 // Fetch audits by userId
 const fetchAuditsByUserId = async (userId) => {
   try {
     const response = await fetch(`http://localhost:8080/Audit/audite/${userId}`);
+
+    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Fetch failed:', errorText);
@@ -66,6 +70,9 @@ const saveActionCorrectiveStatus = async (actionCorrectiveStatus) => {
   }
 };
 
+
+
+
 const ActionsCorrectives = () => {
   const [actionCorrectives, setActionCorrectives] = useState([]);
   const [actionCorrectiveStatus, setActionCorrectiveStatus] = useState({});
@@ -73,6 +80,35 @@ const ActionsCorrectives = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const { userId } = useParams();
+  const [isSent, setIsSent] = useState(false);
+  const [fullname,setFullname]=useState('')
+
+ 
+  const navigate = useNavigate();
+
+
+  const ido = localStorage.getItem('id')
+   
+
+ 
+    
+  useEffect(() => {
+    const fetchFullname = async () => {
+      try {
+        const audits = await fetchAuditsByUserId(userId);
+        if (audits && audits.length > 0 && audits[0].audite && audits[0].audite.fullname) {
+          setFullname(audits[0].audite.fullname);
+        } else {
+          console.warn('Fullname not found in the audit data');
+        }
+      } catch (error) {
+        console.error('Error fetching fullname:', error);
+      }
+    };
+
+    fetchFullname();
+  }, [userId]);
+
 
   // Fetch audits, action correctives, and their statuses
   const fetchData = async () => {
@@ -82,8 +118,20 @@ const ActionsCorrectives = () => {
 
       const audits = await fetchAuditsByUserId(userId);
 
+
+      
+       
       if (audits.length > 0) {
         const auditId = audits[0].id;
+       
+        const sentResponse = await fetch(`http://localhost:8080/ActionCorrectiveStatus/isSent/${userId}/${auditId}`);
+        const sentStatus = await sentResponse.json();
+       
+        setIsSent(sentStatus);
+
+         
+        
+      
         const actions = await fetchActionCorrectivesByAuditId(auditId);
         const status = await fetchActionCorrectiveStatus(userId, auditId);
 
@@ -95,7 +143,6 @@ const ActionsCorrectives = () => {
           ...action,
           done: actionStatusMap[action.id] || false
         }));
-
         setActionCorrectives(updatedActions);
         setActionCorrectiveStatus(status);
       } else {
@@ -108,8 +155,10 @@ const ActionsCorrectives = () => {
     }
   };
 
+
   // Handle checkbox change
-  const handleCheckboxChange = (id) => {
+ const handleCheckboxChange = (id) => {
+    if (isSent) return; // Prevent changes if already sent
     setActionCorrectives(prevActions =>
       prevActions.map(action =>
         action.id === id ? { ...action, done: !action.done } : action
@@ -148,7 +197,42 @@ const ActionsCorrectives = () => {
     }
   };
   
-  
+  const handleSend = async () => {
+    try {
+      // Send notification to admin
+      const notificationResponse = await fetch('http://localhost:8080/User/addNotification?userId=66c24a34556fca12b8653199', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          
+          from: ido,
+          desciption: `L'audité ${fullname} a terminé leur correction des règles`
+        }),
+      });
+
+      if (notificationResponse.ok) {
+        // Mark as sent
+        const markAsSentResponse = await fetch(`http://localhost:8080/ActionCorrectiveStatus/markAsSent/${userId}/${actionCorrectives[0]?.auditId}`, {
+          method: 'POST',
+        });
+
+        if (markAsSentResponse.ok) {
+          setIsSent(true);
+          setSuccess('Notification envoyée à l\'admin avec succès.');
+          
+        } else {
+          setError('Erreur lors du marquage comme envoyé.');
+        }
+      } else {
+        setError('Erreur lors de l\'envoi de la notification à l\'admin.');
+      }
+    } catch (error) {
+      setError(`Erreur lors de l'envoi: ${error.message}`);
+    }
+  };
+
 
   useEffect(() => {
     fetchData();
@@ -156,7 +240,7 @@ const ActionsCorrectives = () => {
 
   if (loading) return <LinearProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
-
+ 
   return (
     <Paper
       sx={{
@@ -212,6 +296,14 @@ const ActionsCorrectives = () => {
           onClick={handleSave}
         >
           Enregistrer
+        </Button>
+        <Button
+        sx={{marginLeft:10}}
+          variant="contained"
+          color="info"
+          onClick={handleSend}
+        >
+          Envoyer
         </Button>
       </Box>
       <Snackbar
