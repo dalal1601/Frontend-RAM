@@ -1,4 +1,4 @@
-import React from "react";
+import React,{useState,useEffect} from "react";
 import { Box, Typography, Grid } from "@mui/material";
 import { styled, useTheme } from "@mui/system";
 import Header from "../../components/Header";
@@ -10,8 +10,24 @@ const StyledBox = styled(Box)(({ theme }) => ({
   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
 }));
 
+
+ 
+
 const App = () => {
   const theme = useTheme(); // Access the current theme
+  const [idMongo, setIdMongo] = useState(null);
+
+  useEffect(() => {
+    const storedIdMongo = localStorage.getItem('idmongo');
+    
+    if (storedIdMongo) {
+      setIdMongo(storedIdMongo);
+      console.log('idMongo from localStorage:', storedIdMongo);
+    } else {
+      console.log('idMongo not found in localStorage');
+    }
+  }, []);
+
 
   const chartTheme = theme.palette.mode === "dark" ? "dark" : "light";
 

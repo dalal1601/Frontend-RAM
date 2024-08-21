@@ -57,6 +57,9 @@ const SectionRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
+const id = localStorage.getItem("id")
+
+
 const InitialPopup = ({ open, onClose }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -217,6 +220,7 @@ const Reponse = () => {
   const [showInitialPopup, setShowInitialPopup] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [fullname,setFullname]=useState(null);
 
 
 
@@ -237,6 +241,7 @@ const Reponse = () => {
       
       console.log("-.-.-.- data:", auditData);
       console.log("-.-.-.- audit:", auditData.audite);
+      setFullname(auditData.auditeur.fullname)
       
       setAudit(auditData);
 
@@ -311,6 +316,7 @@ const Reponse = () => {
   
     const payload = {
       audit: { id: auditId },
+
       reponses: reponses,
     };
   
@@ -383,6 +389,25 @@ const Reponse = () => {
         console.error('Failed to send email:', errorText);
         throw new Error(errorText || 'Failed to send email');
       }
+
+      const notificationResponse = await fetch('http://localhost:8080/Reponse/send-notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          reponseId: result.id,
+          auditId: auditId,
+          message: `L'auditeur ${fullname} vient de terminer son audit. Veuillez consulter votre email.`
+        }),
+      });
+
+      if (!notificationResponse.ok) {
+        const errorText = await notificationResponse.text();
+        console.error('Failed to send notifications:', errorText);
+        throw new Error(errorText || 'Failed to send notifications');
+      }
+
   
       setSnackbar({ open: true, message: 'Données enregistrées et emails envoyés avec succès!', severity: 'success' });
     } catch (error) {

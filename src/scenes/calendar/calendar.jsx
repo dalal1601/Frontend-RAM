@@ -22,6 +22,8 @@ import 'tippy.js/dist/tippy.css';
 import fr from '@fullcalendar/core/locales/fr'; 
 
 const Calendar = () => {
+
+   
   const [openPopup, setOpenPopup] = useState(false);
   const [openEventPopup, setOpenEventPopup] = useState(false);
   const [popupContent, setPopupContent] = useState({});
@@ -30,6 +32,9 @@ const Calendar = () => {
   const [currentEvents, setCurrentEvents] = useState([]);
   const [auditeurs, setAuditeurs] = useState([]);
   const [formulaires, setFormulaires] = useState([]);
+  const [test,settest]=useState('');
+  const [test1,settest1]=useState('');
+  const [test2,settest2]=useState('');
   const [audit, setAudit] = useState({
     dateDebut: "",
     dateFin: "",
@@ -121,13 +126,32 @@ const Calendar = () => {
 
   const handleEnregistre = async () => {
     try {
+
+      console.log('hhhhhh ',audit.auditeur.ID)
+      console.log('hhhhhh ',audit.auditeur.id)
+      console.log('hhhhhh ',audit.auditeur)
+      console.log('hhhhhh ',audit.auditeur.IdMongo)
+
       const auditData = {
         ...audit,
         dateDebut: new Date(audit.dateDebut).toISOString(),
         dateFin: new Date(audit.dateFin).toISOString(),
         formulaire: { id: audit.formulaire },
-        auditeur: { id: audit.auditeur }
+        auditeur: { id: audit.auditeur },
+
+        
+
+
+
+        
+
+
       };
+
+      console.log('hhhhhh ',audit.auditeur.ID)
+      console.log('hhhhhh ',audit.auditeur.id)
+      console.log('hhhhhh ',audit.auditeur.IdMongo)
+     
 
       const response = await fetch("http://localhost:8080/Audit", {
         method: 'POST',
@@ -141,6 +165,27 @@ const Calendar = () => {
         throw new Error("Failed to save audit");
       }
       const savedAudit = await response.json();
+
+      
+      console.log('hhhhhh ',savedAudit.auditeur.idMongo)
+
+
+      const adminId = "0c755a60-3f25-4f03-b77e-822d16dd1f29";
+
+      await fetch(`http://localhost:8080/User/addNotification?userId=${savedAudit.auditeur.idMongo}`, {
+        
+
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: adminId,
+          desciption: `vous avez été choisi pour faire une audite a ${savedAudit.escaleVille} du ${savedAudit.dateDebut} a ${savedAudit.dateFin} `
+        })
+      });
+
+
       setCurrentEvents([...currentEvents, {
         id: savedAudit.id,
         title: `${savedAudit.escaleVille || 'Unknown'} - ${savedAudit.auditeur.fullname}`,
