@@ -4,13 +4,13 @@ import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard";
 import Team from "./scenes/team";
-import Invoices from "./scenes/invoices";
+import Actions from "./scenes/actions";
 import Contacts from "./scenes/contacts";
 import Bar from "./scenes/bar";
 import LoadingAnimation from "./components/LoadingAnimation";
 import Form from "./scenes/form";
 import Line from "./scenes/line";
-import Pie from "./scenes/pie";
+import ChatRoom from "./scenes/chat";
 import FAQ from "./scenes/faq";
 import Login from "./scenes/Login/Login";
 import AuditForm from "./scenes/Formulaire/Formulaire";
@@ -61,10 +61,10 @@ function App() {
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                 <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
-                <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+                <Route path="/actions/:userId" element={<ProtectedRoute><Actions /></ProtectedRoute>} />
                 <Route path="/form" element={<ProtectedRoute><Form /></ProtectedRoute>} />
                 <Route path="/bar" element={<ProtectedRoute><Bar /></ProtectedRoute>} />
-                <Route path="/pie" element={<ProtectedRoute><Pie /></ProtectedRoute>} />
+                <Route path="/chat/:userId" element={<ProtectedRoute><ChatRoom /></ProtectedRoute>} />
                 <Route path="/line" element={<ProtectedRoute><Line /></ProtectedRoute>} />
                 <Route path="/AuditForm" element={<ProtectedRoute><AuditForm /></ProtectedRoute>} />
                 <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />
@@ -83,5 +83,5 @@ function App() {
     </ColorModeContext.Provider>
   );
 }
-
+//
 export default App;

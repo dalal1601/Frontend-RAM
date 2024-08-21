@@ -12,12 +12,15 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
-import PieChartOutlineOutlinedIcon from "@mui/icons-material/PieChartOutlineOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import useCurrentUserId from "../../hook/useCurrentUserId";
+import useUserDetails from '../../hook/useUserDetails'; // Adjust the path as needed
+import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
+
+
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
@@ -44,6 +47,30 @@ const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
   const userId = useCurrentUserId(); // Retrieve current user ID
+  const userDetails = useUserDetails(); 
+  //console.log('Sidebar userDetails:', userDetails); //testiiing 
+  const fullNameStyle = {
+    fontSize: "26px",
+    fontWeight: 700,
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    width: "160px",
+    textAlign: "center",
+    margin: "auto",
+    whiteSpace: "nowrap",
+    paddingBottom: "13px",
+    position: "relative",
+    display: "inline-block"
+  };
+
+  const fullNameBeforeAfterStyle = {
+    content: '""',
+    display: "block",
+    height: "3px",
+    width: "75px",
+    backgroundColor: "#c50000",
+    position: "absolute"
+  };
 
   return (
     <Box
@@ -84,7 +111,12 @@ const Sidebar = () => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                  ADMINIS
+                <img
+                  alt="profile-user"
+                  width="80px"
+                  height="50px"
+                  src={`../../assets/logoRAM.png`}
+                />
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -95,25 +127,20 @@ const Sidebar = () => {
 
           {!isCollapsed && (
             <Box mb="25px">
-              <Box display="flex" justifyContent="center" alignItems="center">
-                <img
-                  alt="profile-user"
-                  width="100px"
-                  height="100px"
-                  src={`../../assets/images.png`}
-                />
-              </Box>
+              
               <Box textAlign="center">
-                <Typography
+              <Typography
                   variant="h2"
                   color={colors.grey[100]}
                   fontWeight="bold"
-                  sx={{ m: "10px 0 0 0" }}
+                  sx={{ m: "10px 0 0 0", ...fullNameStyle }}
                 >
-                  Ed Roh
+                  {userDetails ? userDetails.fullname : "Loading..."}
+                  <span style={{ ...fullNameBeforeAfterStyle, top: "-10px", left: "0" }}></span>
+                  <span style={{ ...fullNameBeforeAfterStyle, bottom: "0", right: "0" }}></span>
                 </Typography>
-                <Typography variant="h5" color={colors.greenAccent[500]}>
-                  VP Fancy Admin
+                <Typography marginTop={1} variant="h5" color="#333">
+                {userDetails ? userDetails.role : "Loading..."}
                 </Typography>
               </Box>
             </Box>
@@ -133,32 +160,32 @@ const Sidebar = () => {
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
-              Data
+              Utilisateurs
             </Typography>
             <Item
-              title="Manage Team"
+              title="Auditeurs"
               to="/team"
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
              <Item
-              title="Audite List"
+              title="Audités List"
               to="/AuditeList"
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
             <Item
-              title="Contacts Information"
+              title="Utilisateurs"
               to="/contacts"
               icon={<ContactsOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
             <Item
-              title="Invoices Balances"
-              to="/invoices"
+              title="Actions Correctives"
+              to={`/actions/${userId}`}
               icon={<ReceiptOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
@@ -169,7 +196,7 @@ const Sidebar = () => {
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
-              Pages
+              Audits
             </Typography>
             <Item
               title="Profile Form"
@@ -223,9 +250,9 @@ const Sidebar = () => {
               setSelected={setSelected}
             />
             <Item
-              title="Pie Chart"
-              to="/pie"
-              icon={<PieChartOutlineOutlinedIcon />}
+              title="Chat"
+              to={`/chat/${userId}`}
+              icon={<ChatBubbleOutlineOutlinedIcon/>}
               selected={selected}
               setSelected={setSelected}
             />
@@ -249,5 +276,5 @@ const Sidebar = () => {
     </Box>
   );
 };
-
+//
 export default Sidebar;
