@@ -62,7 +62,8 @@ const Calendar = () => {
         throw new Error("Failed to fetch auditeurs");
       }
       const data = await response.json();
-      setAuditeurs(data.map(auditeur => ({ value: auditeur.id, label: auditeur.fullname })));
+      const auditeur = data.filter(user=>user.role.includes("AUDITEUR"))
+      setAuditeurs(auditeur.map(auditeur => ({ value: auditeur.id, label: auditeur.fullname })));
     } catch (error) {
       console.error("Error fetching auditeurs:", error);
     }
