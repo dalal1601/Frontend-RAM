@@ -10,17 +10,20 @@ let stompClient = null;
 const ChatRoom = () => {
     const [privateChats, setPrivateChats] = useState(new Map());
     const [publicChats, setPublicChats] = useState([]);
-    const [tab, setTab] = useState("CHATROOM");
+    const [tab, setTab] = useState(null);
     const [userData, setUserData] = useState({
         username: '',
-        receiverName: '',
+        receiverId: '',
         connected: false,
         message: ''
     });
     const [userFullNames, setUserFullNames] = useState(new Map());
-    const [translations, setTranslations] = useState(new Map()); // State for translations
+    const [userAvatars, setUserAvatars] = useState(new Map());
+    const [translations, setTranslations] = useState(new Map());
+    const [users, setUsers] = useState([]);
     const userDetails = useUserDetails();
-    const messagesEndRef = useRef(null); // Reference for initial scroll
+    const messagesEndRef = useRef(null);
+    
 
     useEffect(() => {
         if (userDetails) {
@@ -40,17 +43,30 @@ const ChatRoom = () => {
         }
     }, [userData.connected]);
 
+    
+
     useEffect(() => {
-        // Scroll to the bottom on initial load
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
         }
-    }, [publicChats]);
+    }, [publicChats, privateChats]);
+    useEffect(() => {
+        fetchAllUsers();
+    }, []);
+    
+    useEffect(() => {
+        if (users.length > 0 && userDetails) {
+            const filteredUsers = filterUsersByRole(users, userDetails.role);
+            setUsers(filteredUsers);
+        }
+    }, [users, userDetails]);
+    
 
     const connect = () => {
         const token = localStorage.getItem('token');
         const socket = new SockJS('http://localhost:8080/ws');
         stompClient = Stomp.over(socket);
+
         stompClient.connect(
             { Authorization: `Bearer ${token}` },
             onConnected,
@@ -59,6 +75,7 @@ const ChatRoom = () => {
     };
 
     const onConnected = () => {
+        console.log("Connected");
         setUserData((prevData) => ({ ...prevData, connected: true }));
         stompClient.subscribe('/chatroom/public', onMessageReceived);
         stompClient.subscribe('/user/' + userData.username + '/private', onPrivateMessage);
@@ -67,7 +84,7 @@ const ChatRoom = () => {
 
     const userJoin = () => {
         const chatMessage = {
-            sender: userData.username,
+            senderId: userData.username,
             content: '',
             type: 'JOIN'
         };
@@ -77,22 +94,36 @@ const ChatRoom = () => {
     const onMessageReceived = (payload) => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
-            setPublicChats(prevChats => [...prevChats, payloadData]);
-            fetchUserFullName(payloadData.sender);
+            if (payloadData.receiverId) {
+                const key = payloadData.receiverId === userData.username ? payloadData.senderId : payloadData.receiverId;
+                setPrivateChats(prevChats => {
+                    const updatedChats = new Map(prevChats);
+                    if (!updatedChats.has(key)) {
+                        updatedChats.set(key, []);
+                    }
+                    updatedChats.get(key).push(payloadData);
+                    return updatedChats;
+                });
+            } else {
+                setPublicChats(prevChats => [...prevChats, payloadData]);
+                fetchUserDetails(payloadData.senderId);
+            }
         }
     };
 
     const onPrivateMessage = (payload) => {
         const payloadData = JSON.parse(payload.body);
-        setPrivateChats(prevChats => {
-            const updatedChats = new Map(prevChats);
-            if (!updatedChats.has(payloadData.sender)) {
-                updatedChats.set(payloadData.sender, []);
-            }
-            updatedChats.get(payloadData.sender).push(payloadData);
-            return updatedChats;
-        });
-        fetchUserFullName(payloadData.sender);
+        if (payloadData.type === "CHAT") {
+            const chatKey = [payloadData.senderId, payloadData.receiverId].sort().join("-");
+            setPrivateChats(prevChats => {
+                const updatedChats = new Map(prevChats);
+                if (!updatedChats.has(chatKey)) {
+                    updatedChats.set(chatKey, []);
+                }
+                updatedChats.get(chatKey).push(payloadData);
+                return updatedChats;
+            });
+        }
     };
 
     const onError = (err) => {
@@ -114,22 +145,77 @@ const ChatRoom = () => {
 
             const data = await response.json();
 
-            // Filter messages with type 'CHAT' and sort by creation date
             const chatMessages = data
                 .filter(message => message.type === 'CHAT')
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-            console.log('Fetched CHAT messages:', chatMessages);
+            const generalMessages = chatMessages.filter(message => !message.receiverId);
+            const privateMessages = chatMessages.filter(message => message.receiverId);
 
-            // Set the filtered and sorted messages in state
-            setPublicChats(chatMessages);
+            setPublicChats(generalMessages);
+
+            privateMessages.forEach(message => {
+                const key = [message.senderId, message.receiverId].sort().join("-");
+                setPrivateChats(prevChats => {
+                    const updatedChats = new Map(prevChats);
+                    if (!updatedChats.has(key)) {
+                        updatedChats.set(key, []);
+                    }
+                    updatedChats.get(key).push(message);
+                    return updatedChats;
+                });
+            });
 
         } catch (error) {
             console.error('Error fetching messages:', error);
         }
     };
+///////////////////////////////
+const fetchAllUsers = async () => {
+    try {
+        const response = await fetch('http://localhost:8080/User', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
 
-    const fetchUserFullName = async (username) => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setUsers(data);
+
+        const avatars = new Map();
+        const fullNames = new Map();
+        data.forEach(user => {
+            avatars.set(user.username, user.avatarUrl);
+            fullNames.set(user.username, user.fullname);
+        });
+        setUserAvatars(avatars);
+        setUserFullNames(fullNames);
+
+    } catch (error) {
+        console.error('Error fetching users:', error);
+    }
+};
+
+const filterUsersByRole = (users, role) => {
+    switch (role) {
+        case 'ADMIN':
+            return users;
+        case 'AUDITEUR':
+            return users.filter(user => user.role === 'ADMIN');
+        case 'AUDITE':
+            return users.filter(user => user.role === 'ADMIN');
+        default:
+            return [];
+    }
+};
+
+
+    const fetchUserDetails = async (username) => {
         try {
             const response = await fetch(`http://localhost:8080/api/users/${username}`, {
                 method: 'GET',
@@ -144,9 +230,9 @@ const ChatRoom = () => {
 
             const data = await response.json();
             setUserFullNames(prevNames => new Map(prevNames).set(username, data.fullname));
-
+            setUserAvatars(prevAvatars => new Map(prevAvatars).set(username, data.avatarUrl));
         } catch (error) {
-            console.error('Error fetching user full name:', error);
+            console.error('Error fetching user details:', error);
         }
     };
 
@@ -156,37 +242,57 @@ const ChatRoom = () => {
     };
 
     const sendValue = () => {
-        if (stompClient) {
+        if (stompClient && stompClient.connected) {
             const chatMessage = {
-                sender: userData.username,
+                senderId: userData.username,
                 content: userData.message,
                 type: 'CHAT'
             };
             stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
             setUserData((prevData) => ({ ...prevData, message: '' }));
+            // Update chat immediately after sending
+            setPublicChats(prevChats => [...prevChats, chatMessage]);
+        } else {
+            console.error("STOMP client not connected");
         }
     };
-
+    
     const sendPrivateValue = () => {
-        if (stompClient) {
+        if (stompClient && stompClient.connected && userData.receiverId) {
             const chatMessage = {
-                sender: userData.username,
-                receiver: tab,
+                senderId: userData.username,
+                receiverId: userData.receiverId,
                 content: userData.message,
                 type: 'CHAT'
             };
             stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
-            setUserData((prevData) => ({ ...prevData, message: '' }));
+            setUserData(prevData => ({ ...prevData, message: '' }));
+            // Update private chat immediately after sending
+            const key = [userData.username, userData.receiverId].sort().join("-");
+            setPrivateChats(prevChats => {
+                const updatedChats = new Map(prevChats);
+                if (!updatedChats.has(key)) {
+                    updatedChats.set(key, []);
+                }
+                updatedChats.get(key).push(chatMessage);
+                return updatedChats;
+            });
+        } else {
+            console.error("STOMP client not connected or no receiver specified");
         }
     };
+    
 
-    const handleUsername = (event) => {
-        const { value } = event.target;
-        setUserData((prevData) => ({ ...prevData, username: value }));
-    };
-
-    const registerUser = () => {
-        connect();
+    const handleUserClick = (fullname) => {
+        if (fullname === "General Chat") {
+            setTab("GENERAL");
+        } else {
+            setUserData(prevData => ({
+                ...prevData,
+                receiverId: fullname
+            }));
+            setTab(fullname);
+        }
     };
 
     const translateMessage = async (message) => {
@@ -237,28 +343,56 @@ const ChatRoom = () => {
     }
 };
 
+    const getInitials = (fullname) => {
+        if (!fullname) return '';
+        const names = fullname.split(' ');
+        return names.map(name => name.charAt(0)).join('');
+    };
+    
+
+    console.log('Tab:', tab);
+    console.log('Private Chats:', privateChats);
+    console.log('Selected Receiver ID:', userData.receiverId);
+    const isGeneralChatVisible = userDetails && userDetails.role !== 'AUDITE';
     
 
     return (
-        <div className="container">
-            <Header />
-            <div className="chat-card">
-                <div className="chat-header">
-                    <h3>Conversation</h3>
-                </div>
-                <div className="chat-body">
-                    <ul className="chat-messages">
-                        {publicChats.map((message, index) => (
-                            <li key={index} className={message.sender === userData.username ? 'message self' : 'message'}>
-                                <div className={message.sender === userData.username ? 'avatar self' : 'avatar'}>
-                                    {message.sender.charAt(0)}
-                                </div>
-                                <div className="message-info">
-                                    <small className="message-sender">{userFullNames.get(message.sender) || message.sender}</small>
-                                    <div className="message-data">
-    {message.content}
-    <span
-        className="translate-link"
+        <div className="chat-room">
+            <div className="chat-room-body">
+            <div className="chat-sidebar">
+    <h3>Users</h3>
+    <ul>
+    {isGeneralChatVisible && (
+                            <li onClick={() => handleUserClick("General Chat")}>General Chat</li>
+                        )}
+        {users.map((user) => (
+            <li key={user.username} onClick={() => handleUserClick(user.fullname)}>
+                <div className="avatar">{getInitials(user.fullname)}</div>
+                {user.fullname}
+            </li>
+        ))}
+    </ul>
+</div>
+
+                
+                <div className="chat-content">
+                    <div className="chat-room-header">
+                        <h1>{tab === "GENERAL" ? "Chat Général" : tab}</h1>
+                    </div>
+                    <div className="chat-messages">
+                        {tab === "GENERAL" && (
+                            publicChats.map((message, index) => (
+                                <div key={index} className={`chat-message ${message.senderId === userData.username ? 'from-me' : 'from-others'}`}>
+                                    <div className="message-header">
+                                        <div className="avatar" style={{ backgroundImage: `url(${userAvatars.get(message.senderId)})` }}>
+                                            {!userAvatars.get(message.senderId) && getInitials(userFullNames.get(message.senderId))}
+                                        </div>
+                                        <strong>{userFullNames.get(message.senderId) || message.senderId}</strong>
+                                    </div>
+                                    <div className="message-content">
+                                        <p>{message.content}</p>
+                                        <span
+        className="translate-button"
         onClick={() => handleTranslate(message)}
     >
         Traduire
@@ -268,35 +402,66 @@ const ChatRoom = () => {
             <strong>Traduction :</strong> {translations.get(message.id)}
         </div>
     )}
-</div>
-
+                                    </div>
                                 </div>
-                            </li>
+                            ))
+                        )}
+                        {tab !== "GENERAL" && privateChats.get([userData.username, tab].sort().join("-"))?.map((message, index) => (
+                            <div
+                                key={index}
+                                className={`chat-message ${message.senderId === userData.username ? 'from-me' : 'from-others'}`}
+                            >
+                                <div className="message-header">
+                                    <div className="avatar" style={{ backgroundImage: `url(${userAvatars.get(message.senderId)})` }}>
+                                        {!userAvatars.get(message.senderId) && getInitials(userFullNames.get(message.senderId))}
+                                    </div>
+                                    <strong>{userFullNames.get(message.senderId) || message.senderId}</strong>
+                                </div>
+                                <div className="message-content">
+                                    <p>{message.content}</p>
+                                    <span
+        className="translate-button"
+        onClick={() => handleTranslate(message)}
+    >
+        Traduire
+    </span>
+    {translations.get(message.id) && (
+        <div className="translated-message">
+            <strong>Traduction :</strong> {translations.get(message.id)}
+        </div>
+    )}
+                                </div>
+                            </div>
                         ))}
-                        <div ref={messagesEndRef} /> {/* Initial scroll to bottom */}
-                    </ul>
-                </div>
-    
-                <div className="chat-footer">
-                    <input
-                        className="input-message"
-                        type="text"
-                        value={userData.message}
-                        onChange={handleMessage}
-                        placeholder="Type a message..."
-                    />
-                    <button
-                        className="send-button"
-                        onClick={tab === 'CHATROOM' ? sendValue : sendPrivateValue}
-                    >
-                        Envoyer
-                    </button>
+                        <div ref={messagesEndRef} />
+                    </div>
+                    <div className="chat-input">
+                        {tab === "GENERAL" && (
+                            <input
+                                type="text"
+                                value={userData.message}
+                                onChange={handleMessage}
+                                onKeyPress={(e) => e.key === 'Enter' ? sendValue() : null}
+                                placeholder="Type your message here..."
+                            />
+                        )}
+                        {tab !== "GENERAL" && (
+                            <input
+                                type="text"
+                                value={userData.message}
+                                onChange={handleMessage}
+                                onKeyPress={(e) => e.key === 'Enter' ? sendPrivateValue() : null}
+                                placeholder="Type your message here..."
+                            />
+                        )}
+                        <button onClick={tab === "GENERAL" ? sendValue : sendPrivateValue}>
+                            Send
+                        </button>
+                    </div>
                 </div>
             </div>
-            
         </div>
     );
-    
 };
-//
+
 export default ChatRoom;
