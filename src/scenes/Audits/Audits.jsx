@@ -64,9 +64,10 @@ const UserAudits = () => {
         const filteredAudits = data.filter(audit => 
           isToday(audit.dateFin) || isWithinPeriod(audit.dateDebut, audit.dateFin) || isFuture(audit.dateFin)
         );
+        const sortedAudits = filteredAudits.sort((a, b) => new Date(a.dateDebut) - new Date(b.dateDebut));
 
-        console.log('Filtered audits:', filteredAudits);
-        setAudits(filteredAudits);
+        console.log('Filtered audits:', sortedAudits );
+        setAudits(sortedAudits );
       } catch (error) {
         setError('Error fetching audits: ' + error.message);
       }

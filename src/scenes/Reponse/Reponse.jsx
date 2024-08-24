@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useMemo } from 'react';
 import { useParams } from 'react-router-dom'; 
 import {
   Table,
@@ -157,13 +157,22 @@ const InitialPopup = ({ open, onClose }) => {
   );
 };
 
-const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems }) => {
+const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems, existingReponses = {} }) => {
   const theme = useTheme();
+  
+  const getReponseStatus = (regleId) => {
+    if (checkedItems && checkedItems[regleId]) {
+      return checkedItems[regleId];
+    } else if (existingReponses && existingReponses.hasOwnProperty(regleId)) {
+      return existingReponses[regleId] ? 'Conform' : 'Non-Conform';
+    }
+    return 'Non-Conform';
+  };
   
   return (
     <StyledDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Confirmation des réponses</DialogTitle>
-      <DialogContent>
+    <DialogTitle>Confirmation des réponses</DialogTitle>
+    <DialogContent>
         <TableContainer component={Paper} sx={{ marginTop: 2 }}>
           <Table>
             <TableHead>
@@ -178,31 +187,34 @@ const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems
                   <SectionRow>
                     <TableCell colSpan={2}>{section.description}</TableCell>
                   </SectionRow>
-                  {section.regles.map((regle, regleIndex) => (
-                    <TableRow key={`${sectionIndex}-${regleIndex}`}>
-                      <TableCell>{regle.description}</TableCell>
-                      <TableCell align="center">
-                        <Typography color={checkedItems[regle.id] === 'Conform' ? 'success.main' : 'error.main'} fontWeight="bold">
-                          {checkedItems[regle.id] === 'Conform' ? 'Conforme' : 'Non-Conforme'}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {section.regles.map((regle, regleIndex) => {
+                    const reponseStatus = getReponseStatus(regle.id);
+                    return (
+                      <TableRow key={`${sectionIndex}-${regleIndex}`}>
+                        <TableCell>{regle.description}</TableCell>
+                        <TableCell align="center">
+                          <Typography color={reponseStatus === 'Conform' ? 'success.main' : 'error.main'} fontWeight="bold">
+                            {reponseStatus === 'Conform' ? 'Conforme' : 'Non-Conforme'}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </React.Fragment>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="primary">
-          Annuler
-        </Button>
-        <Button onClick={onConfirm} variant="contained" sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
-          Confirmer
-        </Button>
-      </DialogActions>
-    </StyledDialog>
+    <DialogActions>
+      <Button onClick={onClose} color="primary">
+        Annuler
+      </Button>
+      <Button onClick={onConfirm} variant="contained" sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
+        Confirmer
+      </Button>
+    </DialogActions>
+  </StyledDialog>
   );
 };
 
@@ -221,9 +233,87 @@ const Reponse = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [userId, setUserId] = useState(null);
   const [fullname,setFullname]=useState(null);
+  const [isEditable, setIsEditable] = useState(true);
+  const [reponseId, setReponseId] = useState(null);
+  const [existingReponses, setExistingReponses] = useState({});
 
 
 
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    
+    const reponses = Object.entries(checkedItems)
+      .map(([regleId, value]) => ({
+        [regleId]: value === 'Conform'
+      }));
+
+    const payload = {
+      audit: { id: auditId },
+      reponses: reponses,
+      temporary: true
+    };
+
+    try {
+      const response = await fetch('http://localhost:8080/Reponse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save data');
+      }
+
+      const result = await response.json();
+      setReponseId(result.id)
+      setSnackbar({ open: true, message: 'Données enregistrées avec succès!', severity: 'success' });
+
+      setExistingReponses(prev => ({
+        ...prev,
+        ...Object.fromEntries(reponses.map(r => [Object.keys(r)[0], Object.values(r)[0]]))
+      }));
+
+    } catch (error) {
+      setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+const handleSend = async () => {
+
+ 
+
+setOpenConfirmDialog(true);
+  
+    
+ 
+};
+
+const loadExistingReponses = async () => {
+  try {
+    const response = await fetch(`http://localhost:8080/Reponse/audit/${auditId}`);
+    if (!response.ok) {
+      throw new Error('Failed to load existing responses');
+    }
+    const data = await response.json();
+    if (data && data.reponses) {
+      const reponses = data.reponses.reduce((acc, reponse) => {
+        acc[reponse.regle.id] = reponse.value ? 'Conform' : 'Non-Conform';
+        return acc;
+      }, {});
+      setExistingReponses(reponses);
+      setCheckedItems(reponses);
+      setReponseId(data.id);
+      setIsEditable(data.temporary);
+    }
+  } catch (error) {
+    console.error('Error loading existing responses:', error);
+  }
+};
 
   const { auditId } = useParams();
 
@@ -267,44 +357,46 @@ const Reponse = () => {
 
   useEffect(() => {
     fetchAuditAndFormulaire();
+    loadExistingReponses();
   }, [auditId]);
 
   const handleCheckboxChange = (regleId, value) => {
-    setCheckedItems(prev => {
-      const newCheckedItems = {
-        ...prev,
-        [regleId]: value,
-      };
-      console.log('Checked items updated:', newCheckedItems);
-      return newCheckedItems;
-    });
+    if (isEditable) {
+      setCheckedItems(prev => {
+        const newCheckedItems = { ...prev };
+        if (newCheckedItems[regleId] === value) {
+          delete newCheckedItems[regleId];
+        } else {
+          newCheckedItems[regleId] = value;
+        }
+        return newCheckedItems;
+      });
+      setExistingReponses(prev => {
+        const newExistingReponses = { ...prev };
+        if (newExistingReponses[regleId] === (value === 'Conform')) {
+          delete newExistingReponses[regleId];
+        } else {
+          newExistingReponses[regleId] = (value === 'Conform');
+        }
+        return newExistingReponses;
+      });
+    }
   };
 
-  const isAllRulesAnswered = () => {
+
+  const isAllRulesAnswered = useMemo(() => {
     if (!formulaire) return false;
     
     const allRegleIds = formulaire.sectionList.flatMap(section => 
       section.regles.map(regle => regle.id)
     );
     
-    const answeredRegleIds = Object.keys(checkedItems);
+    const answeredRegleIds = Object.keys({...checkedItems, ...existingReponses});
     
-    console.log('Toutes les règles:', allRegleIds);
-    console.log('Règles répondues:', answeredRegleIds);
-    
-    const allAnswered = allRegleIds.every(regleId => answeredRegleIds.includes(regleId));
-    console.log('Toutes les règles ont été répondues:', allAnswered);
-    
-    return allAnswered;
-  };
+    return allRegleIds.every(regleId => answeredRegleIds.includes(regleId));
+  }, [formulaire, checkedItems, existingReponses]);
 
-  const handleSave = () => {
-    if (isAllRulesAnswered()) {
-      setOpenConfirmDialog(true);
-    } else {
-      setSnackbar({ open: true, message: 'Veuillez répondre à toutes les règles avant d\'enregistrer.', severity: 'warning' });
-    }
-  };
+
 
   const handleConfirmSave = async () => {
     setIsSubmitting(true);
@@ -445,6 +537,15 @@ const Reponse = () => {
             throw new Error(errorText || 'Failed to send notifications');
         }
 
+        const finalise = await fetch(`http://localhost:8080/Reponse/finalize/${reponseId}`, {
+          method: 'PUT',
+        });
+    
+        if (!finalise.ok) {
+          throw new Error('Failed to finalize response');
+        }
+        setIsEditable(false);
+
         setSnackbar({ open: true, message: 'Données enregistrées, emails envoyés et notifications envoyées avec succès!', severity: 'success' });
     } catch (error) {
         setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
@@ -504,7 +605,7 @@ const Reponse = () => {
           <TableBody>
             {formulaire.sectionList.map((section, sectionIndex) => (
               <React.Fragment key={sectionIndex}>
-                <TableRow>
+                <TableRow key={sectionIndex}> 
                   <TableCell colSpan={4} sx={{ fontWeight: 'bold', backgroundColor: theme.palette.action.hover }}>
                     {section.description}
                   </TableCell>
@@ -515,15 +616,17 @@ const Reponse = () => {
                     <TableCell>{regle.description}</TableCell>
                     <TableCell>
                       <Checkbox
-                        checked={checkedItems[regle.id] === 'Conform'}
+                        checked={checkedItems[regle.id] === 'Conform' || existingReponses[regle.id]===true}
                         onChange={() => handleCheckboxChange(regle.id, 'Conform')}
+                        disabled={!isEditable || isSubmitting}
                         color="primary"
                       />
                     </TableCell>
                     <TableCell>
                       <Checkbox
-                        checked={checkedItems[regle.id] === 'Non-Conform'}
+                        checked={checkedItems[regle.id] === 'Non-Conform' || existingReponses[regle.id]===false}
                         onChange={() => handleCheckboxChange(regle.id, 'Non-Conform')}
+                        disabled={!isEditable || isSubmitting}
                         color="secondary"
                       />
                     </TableCell>
@@ -535,7 +638,10 @@ const Reponse = () => {
         </Table>
       </TableContainer>
 
-      <Grid container justifyContent="center">
+      <Grid container justifyContent="center" spacing={2}>
+      {isEditable ? (
+        <>
+              <Grid item>
         <Button
           variant="contained"
           sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}
@@ -545,6 +651,28 @@ const Reponse = () => {
           {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Enregistrer'}
         </Button>
       </Grid>
+      <Grid item>
+        <Button
+        variant="contained"
+        sx={{ backgroundColor: '#4CAF50', '&:hover': { backgroundColor: '#45a049' } }}
+        onClick={handleSend}
+        disabled={isSubmitting || !reponseId || !isAllRulesAnswered}
+        >
+
+          {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Envoyer'}
+
+        </Button>
+
+      </Grid>
+      </>
+      ):(
+        <Grid item>
+            <Typography variant="body1" color="textSecondary">
+              Merci pour votre travail, vous avez terminer votre audit
+            </Typography>
+          </Grid>
+        )}
+      </Grid> 
 
       <ConfirmationDialog
         open={openConfirmDialog}

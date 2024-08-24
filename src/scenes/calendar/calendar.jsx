@@ -17,8 +17,6 @@ import Header from "../../components/Header";
 import { tokens } from "../../theme";
 import Tooltip from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
-
-// Import the French locale
 import fr from '@fullcalendar/core/locales/fr'; 
 
 const Calendar = () => {
@@ -34,6 +32,8 @@ const Calendar = () => {
   const [formulaires, setFormulaires] = useState([]);
   const [test,settest]=useState('');
   const [test1,settest1]=useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [selectedAudit, setSelectedAudit] = useState(null);
   const [test2,settest2]=useState('');
   const [audit, setAudit] = useState({
     dateDebut: "",
@@ -48,6 +48,8 @@ const Calendar = () => {
     fetchFormulaires();
     fetchAudits();
   }, []);
+
+
 
   const addOneDay = (date) => {
     const newDate = new Date(date);
@@ -90,7 +92,7 @@ const Calendar = () => {
       }
       const data = await response.json();
       const events = data
-        .filter(audit => audit.auditeur && audit.auditeur.fullname && audit.dateDebut && audit.dateFin)
+        .filter(audit => audit.auditeur && audit.auditeur.fullname && audit.dateDebut && audit.dateFin  )
         .map(audit => ({
           id: audit.id,
           title: `${audit.escaleVille || 'Unknown'} - ${audit.auditeur.fullname}`,
@@ -104,6 +106,7 @@ const Calendar = () => {
           extendedProps: {
             escaleVille: audit.escaleVille || 'Unknown',
             auditeur: audit.auditeur.fullname,
+            audite: audit.audite ? audit.audite.fullname : '',
             formulaire: audit.formulaire.nom, // Assuming formulaire has a nom field
             dateDebut: audit.dateDebut,
             dateFin: audit.dateFin,
@@ -115,94 +118,116 @@ const Calendar = () => {
     }
   };
 
+  const resetAuditState = () => {
+    setAudit({
+      dateDebut: "",
+      dateFin: "",
+      escaleVille: "",
+      formulaire: "",
+      auditeur: "",
+    });
+  };
+
+  const handleCreateAudit = () => {
+    setEditMode(false);
+    resetAuditState();
+    setOpenPopup(true);
+  };
+
+
   const handleEventClick = (info) => {
+    setSelectedAudit(info.event);
     setPopupContent({
       nomFormulaire: info.event.extendedProps.formulaire,
       escaleVille: info.event.extendedProps.escaleVille,
       dateDebut: info.event.extendedProps.dateDebut,
       dateFin: info.event.extendedProps.dateFin,
+      auditeur: info.event.extendedProps.auditeur,
+      audite: info.event.extendedProps.audite
     });
     setOpenEventPopup(true);
   };
 
-  const handleEnregistre = async () => {
+
+
+  const handleEdit = () => {
+    setEditMode(true);
+    setOpenEventPopup(false);
+    setAudit({
+      dateDebut: selectedAudit.extendedProps.dateDebut,
+      dateFin: selectedAudit.extendedProps.dateFin,
+      escaleVille: selectedAudit.extendedProps.escaleVille,
+      formulaire: formulaires.find(f => f.label === selectedAudit.extendedProps.formulaire).value,
+      auditeur: auditeurs.find(a => a.label === selectedAudit.extendedProps.auditeur).value,
+    });
+    setOpenPopup(true);
+  };
+
+ const handleEnregistre = async () => {
     try {
-
-      console.log('hhhhhh ',audit.auditeur.ID)
-      console.log('hhhhhh ',audit.auditeur.id)
-      console.log('hhhhhh ',audit.auditeur)
-      console.log('hhhhhh ',audit.auditeur.IdMongo)
-
       const auditData = {
         ...audit,
         dateDebut: new Date(audit.dateDebut).toISOString(),
         dateFin: new Date(audit.dateFin).toISOString(),
         formulaire: { id: audit.formulaire },
         auditeur: { id: audit.auditeur },
-
-        
-
-
-
-        
-
-
       };
 
-      console.log('hhhhhh ',audit.auditeur.ID)
-      console.log('hhhhhh ',audit.auditeur.id)
-      console.log('hhhhhh ',audit.auditeur.IdMongo)
-     
-
-      const response = await fetch("http://localhost:8080/Audit", {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(auditData)
-      });
+      let response;
+      if (editMode) {
+        response = await fetch(`http://localhost:8080/Audit/${selectedAudit.id}`, {
+          method: 'PUT',
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(auditData)
+        });
+      } else {
+        response = await fetch("http://localhost:8080/Audit", {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(auditData)
+        });
+      }
 
       if (!response.ok) {
         throw new Error("Failed to save audit");
       }
       const savedAudit = await response.json();
 
-      
-      console.log('hhhhhh ',savedAudit.auditeur.idMongo)
-
-
-      const adminId = "0c755a60-3f25-4f03-b77e-822d16dd1f29";
-
-      await fetch(`http://localhost:8080/User/addNotification?userId=${savedAudit.auditeur.idMongo}`, {
-        
-
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          from: adminId,
-          desciption: `vous avez été choisi pour faire une audite a ${savedAudit.escaleVille} du ${savedAudit.dateDebut} a ${savedAudit.dateFin} `
-        })
-      });
-
-
-      setCurrentEvents([...currentEvents, {
+      const newEvent = {
         id: savedAudit.id,
         title: `${savedAudit.escaleVille || 'Unknown'} - ${savedAudit.auditeur.fullname}`,
         start: new Date(savedAudit.dateDebut),
-        end: addOneDay(new Date(savedAudit.dateFin)), // Add one day to make the end date inclusive
+        end: addOneDay(new Date(savedAudit.dateFin)),
         allDay: true,
-        classNames: ['audit-event'], // Apply class for styling
+        backgroundColor: '#C2002F',
+        borderColor: '#ffffff',
+        textColor: '#ffffff',
+        classNames: ['audit-event'],
         extendedProps: {
           escaleVille: savedAudit.escaleVille || 'Unknown',
           auditeur: savedAudit.auditeur.fullname,
+          audite: savedAudit.audite ? savedAudit.audite.fullname : '',
           formulaire: savedAudit.formulaire.nom,
           dateDebut: savedAudit.dateDebut,
           dateFin: savedAudit.dateFin,
         },
-      }]);
+      };
+
+      if (editMode) {
+        setCurrentEvents(currentEvents.map(event =>
+          event.id === savedAudit.id ? newEvent : event
+        ));
+      } else {
+        setCurrentEvents(prevEvents => [...prevEvents, newEvent]);
+      }
+
       setOpenPopup(false);
+      setEditMode(false);
+      resetAuditState();
     } catch (error) {
       console.error("Error saving audit:", error);
     }
@@ -224,7 +249,7 @@ const Calendar = () => {
               backgroundColor: '#FFB3B3',
             }
           }}
-          onClick={() => setOpenPopup(true)}
+          onClick={handleCreateAudit}
         >
           Créer un Audit
         </Button>
@@ -266,10 +291,15 @@ const Calendar = () => {
         />
       </Box>
 
+     
       <PopUpRED
         open={openPopup}
-        onClose={() => setOpenPopup(false)}
-        title="Créer un Audit"
+        onClose={() => {
+          setOpenPopup(false);
+          setEditMode(false);
+          resetAuditState();
+        }}
+        title={editMode ? "Modifier un Audit" : "Créer un Audit"}
         content={
           <form style={{
             display: "grid",
@@ -277,28 +307,42 @@ const Calendar = () => {
             gridTemplateColumns: "repeat(2, 1fr)",
           }}>
             <div>
-              <label htmlFor="dateDebut">Date Début:</label>
-              <TextField
-                id="dateDebut"
-                type="date"
-                onChange={(e) => setAudit({ ...audit, dateDebut: e.target.value })}
-                fullWidth
-              />
+            <label htmlFor="dateDebut">Date Début:</label>
+  <TextField
+    id="dateDebut"
+    type="date"
+    value={audit.dateDebut}
+    onChange={(e) => {
+      const newDateDebut = e.target.value;
+      const minDateFin = new Date(new Date(newDateDebut).getTime() + 86400000).toISOString().split('T')[0];
+      setAudit(prev => ({
+        ...prev,
+        dateDebut: newDateDebut,
+        dateFin: prev.dateFin < minDateFin ? minDateFin : prev.dateFin
+      }));
+    }}
+    fullWidth
+  />
             </div>
             <div>
-              <label htmlFor="dateFin">Date Fin:</label>
-              <TextField
-                id="dateFin"
-                type="date"
-                onChange={(e) => setAudit({ ...audit, dateFin: e.target.value })}
-                fullWidth
-              />
+            <label htmlFor="dateFin">Date Fin:</label>
+  <TextField
+    id="dateFin"
+    type="date"
+    value={audit.dateFin}
+    onChange={(e) => setAudit({ ...audit, dateFin: e.target.value })}
+    inputProps={{
+      min: audit.dateDebut ? new Date(new Date(audit.dateDebut).getTime() + 86400000).toISOString().split('T')[0] : undefined
+    }}
+    fullWidth
+  />
             </div>
             <div>
               <label htmlFor="escaleVille">Ville d'escale:</label>
               <TextField
                 id="escaleVille"
                 placeholder="Ville d'escale"
+                value={audit.escaleVille}
                 onChange={(e) => setAudit({ ...audit, escaleVille: e.target.value })}
                 fullWidth
               />
@@ -308,6 +352,7 @@ const Calendar = () => {
               <Select
                 id="formulaire"
                 options={formulaires}
+                value={formulaires.find(f => f.value === audit.formulaire)}
                 onChange={(selectedOption) => setAudit({ ...audit, formulaire: selectedOption.value })}
               />
             </div>
@@ -316,6 +361,7 @@ const Calendar = () => {
               <Select
                 id="auditeur"
                 options={auditeurs}
+                value={auditeurs.find(a => a.value === audit.auditeur)}
                 onChange={(selectedOption) => setAudit({ ...audit, auditeur: selectedOption.value })}
               />
             </div>
@@ -334,13 +380,12 @@ const Calendar = () => {
                   width: "100%"
                 }}
               >
-                Enregistrer
+                {editMode ? "Modifier" : "Enregistrer"}
               </Button>
             </div>
           </form>
         }
       />
-
       <PopUpRED
         open={openEventPopup}
         onClose={() => setOpenEventPopup(false)}
@@ -351,9 +396,36 @@ const Calendar = () => {
             <Typography variant="h6">Ville d'escale: {popupContent.escaleVille}</Typography>
             <Typography variant="h6">Date de Début: {new Date(popupContent.dateDebut).toLocaleDateString("fr-FR")}</Typography>
             <Typography variant="h6">Date de Fin: {new Date(popupContent.dateFin).toLocaleDateString("fr-FR")}</Typography>
+            <Typography variant="h6">Auditeur: {popupContent.auditeur}</Typography>
+            <Typography variant="h6">Audite: {popupContent.audite}</Typography>
+
+            {new Date()< new Date(popupContent.dateDebut)&&(
+
+              <Button
+                variant="contained"
+                onClick={handleEdit}
+                sx={{
+                  marginTop: "20px",
+                  backgroundColor: '#C2002F',
+                  '&:hover': {
+                    backgroundColor: '#A5002A',
+                  },
+                }}
+              >
+                Modifier
+              </Button>
+
+
+            )}
           </div>
         }
       />
+      
+   
+
+
+
+
     </Box>
   );
 };
