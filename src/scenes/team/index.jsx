@@ -127,8 +127,7 @@ const Team = () => {
           body: JSON.stringify({
             fullname: `${values.firstName} ${values.lastName}`,
             email: values.email,
-            mdp: values.mdp,
-            role: "AUDITEUR", // Adjust as needed
+            role: "AUDITEUR", 
           }),
         });
       } else {
@@ -167,14 +166,14 @@ const Team = () => {
     firstName: yup.string().required("required"),
     lastName: yup.string().required("required"),
     email: yup.string().email("invalid email").required("required"),
-    mdp: yup.string().required("required"),
+    
   });
 
   const initialValues = {
     firstName: selectedUser ? selectedUser.fullname.split(' ')[0] : "",
     lastName: selectedUser ? selectedUser.fullname.split(' ')[1] : "",
     email: selectedUser ? selectedUser.email : "",
-    mdp: selectedUser ? selectedUser.mdp : "", 
+
   };
 
   return (
