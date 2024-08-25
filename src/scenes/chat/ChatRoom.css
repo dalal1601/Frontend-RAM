@@ -202,7 +202,7 @@
 }
 
 .chat-input button:hover {
-    background-color: #0056b3; /* Darker shade for button hover */
+    background-color: #b30036; /* Darker shade for button hover */
 }
 /* Add styles for the avatar inside chat messages */
 .message-header .avatar {
@@ -217,14 +217,25 @@
     margin-right: 0;
     margin-bottom: 5px; /* Space between avatar and name */
 }
+.avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+}
 
 /* Adjust avatar size and spacing in chat message */
 .chat-message.from-me .message-header .avatar {
-    background-color: #d12735; /* Different color for sender avatar */
+    background-color: #d12735; 
 }
 
 .chat-message.from-others .message-header .avatar {
-    background-color: #721c1c; /* Different color for other user's avatar */
+    background-color: #adb2fc;
 }
 
 

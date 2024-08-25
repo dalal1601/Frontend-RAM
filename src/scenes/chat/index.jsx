@@ -43,25 +43,15 @@ const ChatRoom = () => {
         }
     }, [userData.connected]);
 
-    
+    useEffect(() => {
+        fetchAllUsers();
+    }, []);
 
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
         }
     }, [publicChats, privateChats]);
-    useEffect(() => {
-        fetchAllUsers();
-    }, []);
-    
-    useEffect(() => {
-        if (users.length > 0 && userDetails) {
-            const filteredUsers = filterUsersByRole(users, userDetails.role);
-            setUsers(filteredUsers);
-        }
-    }, [users, userDetails]);
-    
-
     const connect = () => {
         const token = localStorage.getItem('token');
         const socket = new SockJS('http://localhost:8080/ws');
@@ -73,7 +63,21 @@ const ChatRoom = () => {
             onError
         );
     };
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [publicChats, privateChats, tab]);
+    
+    useEffect(() => {
+        // Move filtering logic into a separate function
+        if (userDetails && users.length > 0) {
+            const filteredUsers = filterUsersByRole(users, userDetails.role);
+            setUsers(filteredUsers);
+        }
+    }, [userDetails, users.length]);
 
+   
     const onConnected = () => {
         console.log("Connected");
         setUserData((prevData) => ({ ...prevData, connected: true }));
@@ -95,6 +99,7 @@ const ChatRoom = () => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
             if (payloadData.receiverId) {
+                // Handle private messages
                 const key = payloadData.receiverId === userData.username ? payloadData.senderId : payloadData.receiverId;
                 setPrivateChats(prevChats => {
                     const updatedChats = new Map(prevChats);
@@ -105,11 +110,13 @@ const ChatRoom = () => {
                     return updatedChats;
                 });
             } else {
+                // Handle public messages for the general chat
                 setPublicChats(prevChats => [...prevChats, payloadData]);
-                fetchUserDetails(payloadData.senderId);
+                fetchUserDetails(payloadData.senderId);  // Optional: fetch user details if not already available
             }
         }
     };
+    
 
     const onPrivateMessage = (payload) => {
         const payloadData = JSON.parse(payload.body);
@@ -249,13 +256,17 @@ const filterUsersByRole = (users, role) => {
                 type: 'CHAT'
             };
             stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
-            setUserData((prevData) => ({ ...prevData, message: '' }));
-            // Update chat immediately after sending
+            
+            // Instantly update public chat after sending
             setPublicChats(prevChats => [...prevChats, chatMessage]);
+            
+            // Clear the message input
+            setUserData((prevData) => ({ ...prevData, message: '' }));
         } else {
             console.error("STOMP client not connected");
         }
     };
+    
     
     const sendPrivateValue = () => {
         if (stompClient && stompClient.connected && userData.receiverId) {
@@ -384,56 +395,60 @@ const filterUsersByRole = (users, role) => {
                             publicChats.map((message, index) => (
                                 <div key={index} className={`chat-message ${message.senderId === userData.username ? 'from-me' : 'from-others'}`}>
                                     <div className="message-header">
-                                        <div className="avatar" style={{ backgroundImage: `url(${userAvatars.get(message.senderId)})` }}>
-                                            {!userAvatars.get(message.senderId) && getInitials(userFullNames.get(message.senderId))}
+                                        <div className="avatar">
+                                            {/* Always display initials */}
+                                            {getInitials(userFullNames.get(message.senderId) || message.senderId)}
                                         </div>
                                         <strong>{userFullNames.get(message.senderId) || message.senderId}</strong>
                                     </div>
                                     <div className="message-content">
                                         <p>{message.content}</p>
                                         <span
-        className="translate-button"
-        onClick={() => handleTranslate(message)}
-    >
-        Traduire
-    </span>
-    {translations.get(message.id) && (
-        <div className="translated-message">
-            <strong>Traduction :</strong> {translations.get(message.id)}
-        </div>
-    )}
+                                            className="translate-button"
+                                            onClick={() => handleTranslate(message)}
+                                        >
+                                            Traduire
+                                        </span>
+                                        {translations.get(message.id) && (
+                                            <div className="translated-message">
+                                                <strong>Traduction :</strong> {translations.get(message.id)}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))
+                            
                         )}
                         {tab !== "GENERAL" && privateChats.get([userData.username, tab].sort().join("-"))?.map((message, index) => (
-                            <div
-                                key={index}
-                                className={`chat-message ${message.senderId === userData.username ? 'from-me' : 'from-others'}`}
-                            >
-                                <div className="message-header">
-                                    <div className="avatar" style={{ backgroundImage: `url(${userAvatars.get(message.senderId)})` }}>
-                                        {!userAvatars.get(message.senderId) && getInitials(userFullNames.get(message.senderId))}
-                                    </div>
-                                    <strong>{userFullNames.get(message.senderId) || message.senderId}</strong>
-                                </div>
-                                <div className="message-content">
-                                    <p>{message.content}</p>
-                                    <span
-        className="translate-button"
-        onClick={() => handleTranslate(message)}
+    <div
+        key={index}
+        className={`chat-message ${message.senderId === userData.username ? 'from-me' : 'from-others'}`}
     >
-        Traduire
-    </span>
-    {translations.get(message.id) && (
-        <div className="translated-message">
-            <strong>Traduction :</strong> {translations.get(message.id)}
+        <div className="message-header">
+            <div className="avatar">
+                {/* Always display initials */}
+                {getInitials(userFullNames.get(message.senderId) || message.senderId)}
+            </div>
+            <strong>{userFullNames.get(message.senderId) || message.senderId}</strong>
         </div>
-    )}
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
+        <div className="message-content">
+            <p>{message.content}</p>
+            <span
+                className="translate-button"
+                onClick={() => handleTranslate(message)}
+            >
+                Traduire
+            </span>
+            {translations.get(message.id) && (
+                <div className="translated-message">
+                    <strong>Traduction :</strong> {translations.get(message.id)}
+                </div>
+            )}
+        </div>
+    </div>
+))}
+
+<div ref={messagesEndRef} />
                     </div>
                     <div className="chat-input">
                         {tab === "GENERAL" && (
@@ -451,11 +466,11 @@ const filterUsersByRole = (users, role) => {
                                 value={userData.message}
                                 onChange={handleMessage}
                                 onKeyPress={(e) => e.key === 'Enter' ? sendPrivateValue() : null}
-                                placeholder="Type your message here..."
+                                placeholder="Tapez votre message ici..."
                             />
                         )}
                         <button onClick={tab === "GENERAL" ? sendValue : sendPrivateValue}>
-                            Send
+                            Envoyer
                         </button>
                     </div>
                 </div>
