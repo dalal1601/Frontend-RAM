@@ -4,7 +4,7 @@ import SockJS from 'sockjs-client';
 import useUserDetails from '../../hook/useUserDetails';
 import './ChatRoom.css';
 import Header from "../../components/Header";
-
+import notificationSound from '../../sounds/notification.mp3';
 let stompClient = null;
 
 const ChatRoom = () => {
@@ -76,6 +76,7 @@ const ChatRoom = () => {
             setUsers(filteredUsers);
         }
     }, [userDetails, users.length]);
+    
 
    
     const onConnected = () => {
@@ -98,30 +99,47 @@ const ChatRoom = () => {
     const onMessageReceived = (payload) => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
-            if (payloadData.receiverId) {
-                // Handle private messages
-                const key = payloadData.receiverId === userData.username ? payloadData.senderId : payloadData.receiverId;
-                setPrivateChats(prevChats => {
-                    const updatedChats = new Map(prevChats);
-                    if (!updatedChats.has(key)) {
-                        updatedChats.set(key, []);
+            if (payloadData.receiverId && payloadData.receiverId !== userData.username) {
+                // Play sound notification
+                new Audio(notificationSound).play();
+    
+                const sender = payloadData.senderId;
+                setUnreadMessages(prev => {
+                    const updated = new Map(prev);
+                    if (!updated.has(sender)) {
+                        updated.set(sender, []);
                     }
-                    updatedChats.get(key).push(payloadData);
-                    return updatedChats;
+                    updated.get(sender).push(payloadData);
+                    return updated;
                 });
-            } else {
-                // Handle public messages for the general chat
+            } else if (!payloadData.receiverId) {
+                // Play sound notification
+                new Audio(notificationSound).play();
+    
+                // It's a public message
                 setPublicChats(prevChats => [...prevChats, payloadData]);
-                fetchUserDetails(payloadData.senderId);  // Optional: fetch user details if not already available
             }
         }
     };
     
-
     const onPrivateMessage = (payload) => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
+            // Play sound notification
+            new Audio(notificationSound).play();
+    
             const chatKey = [payloadData.senderId, payloadData.receiverId].sort().join("-");
+            if (payloadData.receiverId === userData.username) {
+                setUnreadMessages(prev => {
+                    const updated = new Map(prev);
+                    if (!updated.has(payloadData.senderId)) {
+                        updated.set(payloadData.senderId, []);
+                    }
+                    updated.get(payloadData.senderId).push(payloadData);
+                    return updated;
+                });
+            }
+    
             setPrivateChats(prevChats => {
                 const updatedChats = new Map(prevChats);
                 if (!updatedChats.has(chatKey)) {
@@ -132,6 +150,7 @@ const ChatRoom = () => {
             });
         }
     };
+
 
     const onError = (err) => {
         console.log(err);
@@ -359,6 +378,88 @@ const filterUsersByRole = (users, role) => {
         const names = fullname.split(' ');
         return names.map(name => name.charAt(0)).join('');
     };
+    //////////////////////////////////////////////////////
+    const [unreadMessages, setUnreadMessages] = useState(new Map());
+
+const fetchUnreadMessages = async () => {
+    try {
+        const response = await fetch('http://localhost:8080/api/chat/messages/unread?receiverId=' + userData.username, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        if (!response.ok) throw new Error('Network response was not ok');
+        const unreadMessagesData = await response.json();
+
+        const unreadMap = new Map();
+        unreadMessagesData.forEach(msg => {
+            const sender = userFullNames.get(msg.senderId) || msg.senderId;
+            if (!unreadMap.has(sender)) {
+                unreadMap.set(sender, []);
+            }
+            unreadMap.get(sender).push(msg);
+        });
+        setUnreadMessages(unreadMap);
+    } catch (error) {
+        console.error('Error fetching unread messages:', error);
+    }
+};
+
+
+    // Example function for making the PUT request
+    const markMessageAsRead = async (messageId) => {
+        if (!messageId) {
+            console.error('Invalid message ID.');
+            return;
+        }
+    
+        try {
+            const response = await fetch(`http://localhost:8080/api/chat/messages/${messageId}/read`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+    
+            if (!response.ok) {
+                throw new Error('Network response was not ok.');
+            }
+    
+            // Remove the message from unreadMessages state
+            setUnreadMessages(prev => {
+                const updated = new Map(prev);
+                updated.forEach((msgs, sender) => {
+                    updated.set(sender, msgs.filter(msg => msg.id !== messageId));
+                    if (updated.get(sender).length === 0) {
+                        updated.delete(sender);
+                    }
+                });
+                return updated;
+            });
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+    
+    
+    useEffect(() => {
+        if (userData.username) {
+            fetchUnreadMessages();
+        }
+    }, [userData.username]);
+    
+    useEffect(() => {
+        if (tab !== "GENERAL") {
+            const chatKey = [userData.username, tab].sort().join("-");
+            privateChats.get(chatKey)?.forEach(message => {
+                if (!message.read && message.id) {
+                    markMessageAsRead(message.id);
+                }
+            });
+        }
+    }, [tab, privateChats]);   
     
 
     console.log('Tab:', tab);
@@ -373,17 +474,23 @@ const filterUsersByRole = (users, role) => {
             <div className="chat-sidebar">
     <h3>Users</h3>
     <ul>
-    {isGeneralChatVisible && (
-                            <li onClick={() => handleUserClick("General Chat")}>General Chat</li>
-                        )}
+        {isGeneralChatVisible && (
+            <li onClick={() => handleUserClick("General Chat")}>General Chat</li>
+        )}
         {users.map((user) => (
             <li key={user.username} onClick={() => handleUserClick(user.fullname)}>
                 <div className="avatar">{getInitials(user.fullname)}</div>
                 {user.fullname}
+                {unreadMessages.has(user.fullname) && (
+                    <span className="notification-badge">
+                        {unreadMessages.get(user.fullname).length}
+                    </span>
+                )}
             </li>
         ))}
     </ul>
 </div>
+
 
                 
                 <div className="chat-content">
