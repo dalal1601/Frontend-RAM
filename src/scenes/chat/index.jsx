@@ -23,7 +23,7 @@ const ChatRoom = () => {
     const [users, setUsers] = useState([]);
     const userDetails = useUserDetails();
     const messagesEndRef = useRef(null);
-    
+
 
     useEffect(() => {
         if (userDetails) {
@@ -52,6 +52,38 @@ const ChatRoom = () => {
             messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
         }
     }, [publicChats, privateChats]);
+    useEffect(() => {
+        if (stompClient) {
+            stompClient.connect({}, (frame) => {
+                stompClient.subscribe('/topic/public', (message) => {
+                    onPublicMessageReceived(message);
+                });
+            }, (error) => {
+                console.error("STOMP error:", error);
+            });
+        }
+    }, [stompClient]);
+    const onPublicMessageReceived = (payload) => {
+        const payloadData = JSON.parse(payload.body);
+    
+        // Update the public chat state
+        setPublicChats(prevChats => [...prevChats, payloadData]);
+    
+        // Handle notification for general chat messages
+        if (!payloadData.receiverId && tab !== "GENERAL") {
+            setUnreadMessages(prev => {
+                const updated = new Map(prev);
+                const sender = "General Chat";
+                if (!updated.has(sender)) {
+                    updated.set(sender, []);
+                }
+                updated.get(sender).push(payloadData);
+                return updated;
+            });
+            playNotificationSound(); // Play notification sound
+        }
+    };
+    
     const connect = () => {
         const token = localStorage.getItem('token');
         const socket = new SockJS('http://localhost:8080/ws');
@@ -99,10 +131,10 @@ const ChatRoom = () => {
     const onMessageReceived = (payload) => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
-            if (payloadData.receiverId && payloadData.receiverId !== userData.username) {
-                // Play sound notification
-                new Audio(notificationSound).play();
+            playNotificationSound(); // Play sound notification
     
+            if (payloadData.receiverId && payloadData.receiverId !== userData.username) {
+                // Handle unread messages
                 const sender = payloadData.senderId;
                 setUnreadMessages(prev => {
                     const updated = new Map(prev);
@@ -113,20 +145,18 @@ const ChatRoom = () => {
                     return updated;
                 });
             } else if (!payloadData.receiverId) {
-                // Play sound notification
-                new Audio(notificationSound).play();
-    
                 // It's a public message
-                setPublicChats(prevChats => [...prevChats, payloadData]);
+                setPublicChats(prevChats => {
+                    const updatedChats = [...prevChats, payloadData];
+                    return updatedChats;
+                });
             }
         }
     };
-    
     const onPrivateMessage = (payload) => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
-            // Play sound notification
-            new Audio(notificationSound).play();
+            playNotificationSound(); // Play sound notification
     
             const chatKey = [payloadData.senderId, payloadData.receiverId].sort().join("-");
             if (payloadData.receiverId === userData.username) {
@@ -150,8 +180,7 @@ const ChatRoom = () => {
             });
         }
     };
-
-
+    
     const onError = (err) => {
         console.log(err);
     };
@@ -240,33 +269,11 @@ const filterUsersByRole = (users, role) => {
     }
 };
 
-
-    const fetchUserDetails = async (username) => {
-        try {
-            const response = await fetch(`http://localhost:8080/api/users/${username}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            const data = await response.json();
-            setUserFullNames(prevNames => new Map(prevNames).set(username, data.fullname));
-            setUserAvatars(prevAvatars => new Map(prevAvatars).set(username, data.avatarUrl));
-        } catch (error) {
-            console.error('Error fetching user details:', error);
-        }
-    };
-
     const handleMessage = (event) => {
         const { value } = event.target;
         setUserData((prevData) => ({ ...prevData, message: value }));
     };
-
+///////////////////////////////////
     const sendValue = () => {
         if (stompClient && stompClient.connected) {
             const chatMessage = {
@@ -275,10 +282,8 @@ const filterUsersByRole = (users, role) => {
                 type: 'CHAT'
             };
             stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
-            
             // Instantly update public chat after sending
             setPublicChats(prevChats => [...prevChats, chatMessage]);
-            
             // Clear the message input
             setUserData((prevData) => ({ ...prevData, message: '' }));
         } else {
@@ -297,7 +302,7 @@ const filterUsersByRole = (users, role) => {
             };
             stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
             setUserData(prevData => ({ ...prevData, message: '' }));
-            // Update private chat immediately after sending
+            // Update private chat immediately after sending..
             const key = [userData.username, userData.receiverId].sort().join("-");
             setPrivateChats(prevChats => {
                 const updatedChats = new Map(prevChats);
@@ -353,8 +358,6 @@ const filterUsersByRole = (users, role) => {
             return 'Traduction non disponible';
         }
     };
-    
-    
 
     const handleTranslate = async (message) => {
     try {
@@ -381,33 +384,32 @@ const filterUsersByRole = (users, role) => {
     //////////////////////////////////////////////////////
     const [unreadMessages, setUnreadMessages] = useState(new Map());
 
-const fetchUnreadMessages = async () => {
-    try {
-        const response = await fetch('http://localhost:8080/api/chat/messages/unread?receiverId=' + userData.username, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-        if (!response.ok) throw new Error('Network response was not ok');
-        const unreadMessagesData = await response.json();
-
-        const unreadMap = new Map();
-        unreadMessagesData.forEach(msg => {
-            const sender = userFullNames.get(msg.senderId) || msg.senderId;
-            if (!unreadMap.has(sender)) {
-                unreadMap.set(sender, []);
-            }
-            unreadMap.get(sender).push(msg);
-        });
-        setUnreadMessages(unreadMap);
-    } catch (error) {
-        console.error('Error fetching unread messages:', error);
-    }
-};
-
-
-    // Example function for making the PUT request
+    const fetchUnreadMessages = async () => {
+        try {
+            const response = await fetch('http://localhost:8080/api/chat/messages/unread?receiverId=' + userData.username, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (!response.ok) throw new Error('Network response was not ok');
+            const unreadMessagesData = await response.json();
+    
+            const unreadMap = new Map();
+            unreadMessagesData.forEach(msg => {
+                const sender = msg.receiverId ? userFullNames.get(msg.senderId) || msg.senderId : "General Chat";
+                if (!unreadMap.has(sender)) {
+                    unreadMap.set(sender, []);
+                }
+                unreadMap.get(sender).push(msg);
+            });
+            setUnreadMessages(unreadMap);
+        } catch (error) {
+            console.error('Error fetching unread messages:', error);
+        }
+    };
+    
+    // Example function for making the PUT request/////////////////////
     const markMessageAsRead = async (messageId) => {
         if (!messageId) {
             console.error('Invalid message ID.');
@@ -443,7 +445,6 @@ const fetchUnreadMessages = async () => {
         }
     };
     
-    
     useEffect(() => {
         if (userData.username) {
             fetchUnreadMessages();
@@ -460,9 +461,36 @@ const fetchUnreadMessages = async () => {
             });
         }
     }, [tab, privateChats]);   
+    const [userInteracted, setUserInteracted] = useState(false); // New state
+
+    const playNotificationSound = () => {
+        if (userInteracted || !document.hidden) { // Play sound if user interacted or document is visible
+            new Audio(notificationSound).play().catch(error => {
+                console.error('Failed to play sound:', error);
+            });
+        }
+    };
+    
+    useEffect(() => {
+        const interaction = localStorage.getItem('userInteracted');
+        if (interaction === 'true') {
+            setUserInteracted(true);
+        }
+    
+        window.addEventListener('click', handleUserInteraction);
+        return () => {
+            window.removeEventListener('click', handleUserInteraction);
+        };
+    }, []);
+    
+    const handleUserInteraction = () => {
+        setUserInteracted(true);
+        localStorage.setItem('userInteracted', 'true');
+    };
+    
     
 
-    console.log('Tab:', tab);
+   // console.log('Tab:', tab);
     console.log('Private Chats:', privateChats);
     console.log('Selected Receiver ID:', userData.receiverId);
     const isGeneralChatVisible = userDetails && userDetails.role !== 'AUDITE';
@@ -475,7 +503,14 @@ const fetchUnreadMessages = async () => {
     <h3>Users</h3>
     <ul>
         {isGeneralChatVisible && (
-            <li onClick={() => handleUserClick("General Chat")}>General Chat</li>
+            <li onClick={() => handleUserClick("General Chat")}>
+                General Chat
+                {unreadMessages.has("General Chat") && (
+                    <span className="notification-badge">
+                        {unreadMessages.get("General Chat").length}
+                    </span>
+                )}
+            </li>
         )}
         {users.map((user) => (
             <li key={user.username} onClick={() => handleUserClick(user.fullname)}>
@@ -490,9 +525,6 @@ const fetchUnreadMessages = async () => {
         ))}
     </ul>
 </div>
-
-
-                
                 <div className="chat-content">
                     <div className="chat-room-header">
                         <h1>{tab === "GENERAL" ? "Chat Général" : tab}</h1>
