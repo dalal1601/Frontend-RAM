@@ -28,12 +28,20 @@ const Topbar = () => {
   const colorMode = useContext(ColorModeContext);
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
 
   useEffect(() => {
     const idMongo = localStorage.getItem('idmongo');
     if (idMongo) {
       fetchNotifications(idMongo);
+      fetchUnreadCount(idMongo);
+
+      const intervalId = setInterval(() => {
+        fetchUnreadCount(idMongo);
+      }, 5000);
+
+      return () => clearInterval(intervalId);
     }
   }, []);
 
@@ -43,14 +51,30 @@ const Topbar = () => {
       setNotifications(response.data);
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      if (error.response && error.response.status === 404) {
-        setNotifications([]);
-      }
     }
   };
 
-  const handleNotificationClick = (event) => {
+  const fetchUnreadCount = async (idMongo) => {
+    try {
+      const response = await axios.get(`http://localhost:8080/User/unreadNotificationCount?idMongo=${idMongo}`);
+      setUnreadCount(response.data);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  const handleNotificationClick = async (event) => {
     setAnchorEl(event.currentTarget);
+    const idMongo = localStorage.getItem('idmongo');
+    if (idMongo) {
+      try {
+        await axios.post(`http://localhost:8080/User/markNotificationsAsRead?idMongo=${idMongo}`);
+        setUnreadCount(0);
+        fetchNotifications(idMongo);
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+      }
+    }
   };
 
   const handleNotificationClose = () => {
@@ -61,8 +85,6 @@ const Topbar = () => {
 
   const handleLogout = () => {
     localStorage.clear();
-    localStorage.removeItem('token');
-    localStorage.removeItem('idMongo');
     navigate('/');
   };
 
@@ -77,7 +99,7 @@ const Topbar = () => {
       </IconButton>
       <Box position="relative">
         <IconButton onClick={handleNotificationClick}>
-          <Badge badgeContent={notifications.length} color="error">
+          <Badge badgeContent={unreadCount} color="error">
             <NotificationsOutlinedIcon />
           </Badge>
         </IconButton>
@@ -100,14 +122,15 @@ const Topbar = () => {
             </Box>
             <List sx={{ 
               bgcolor: 'background.paper', 
-              maxHeight: `${5 * 80}px`, // Increased height to account for dividers
+              maxHeight: `${5 * 80}px`,
               overflowY: notifications.length > 5 ? 'auto' : 'visible'
             }}>
               {notifications.slice().reverse().map((notification, index) => (
                 <React.Fragment key={index}>
                   <ListItemButton 
                     sx={{
-                      py: 1, // Vertical padding
+                      py: 1,
+                      backgroundColor: notification.read ? 'inherit' : colors.blueAccent[700],
                       '&:hover': {
                         backgroundColor: theme.palette.mode === 'dark' 
                           ? colors.primary[600] 

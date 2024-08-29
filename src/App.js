@@ -25,6 +25,7 @@ import Audits from "./scenes/Audits/Audits";
 import ProtectedRoute from "./ProtectedRoute";
 import AuditeList from "./scenes/team/AuditeList"
 import Loginch from "./scenes/Login/Loginch"
+import Admins from "./scenes/team/Admins"
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -69,6 +70,7 @@ function App() {
                 <Route path="/AuditForm" element={<ProtectedRoute><AuditForm /></ProtectedRoute>} />
                 <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />
                 <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+                <Route path="/Admins" element={<ProtectedRoute><Admins /></ProtectedRoute>} />
                 <Route path="/geography" element={<ProtectedRoute><Geography /></ProtectedRoute>} />
                 <Route path="/formulaires" element={<ProtectedRoute><AllFormulaire /></ProtectedRoute>} />
                 <Route path="/formulaire/:id" element={<ProtectedRoute><FormulaireDetail /></ProtectedRoute>} />
