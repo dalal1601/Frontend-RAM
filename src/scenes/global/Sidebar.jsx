@@ -16,6 +16,7 @@ import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import FileCopyIcon from '@mui/icons-material/FileCopy';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import useCurrentUserId from "../../hook/useCurrentUserId";
 import useUserDetails from '../../hook/useUserDetails'; // Adjust the path as needed
 import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
@@ -173,6 +174,13 @@ const Sidebar = () => {
               title="Audités List"
               to="/AuditeList"
               icon={<PeopleOutlinedIcon />}
+              selected={selected}
+              setSelected={setSelected}
+            />
+            <Item
+              title="Admins"
+              to="/Admins"
+              icon={<AccountCircleIcon />}
               selected={selected}
               setSelected={setSelected}
             />
