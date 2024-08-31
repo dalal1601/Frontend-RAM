@@ -55,10 +55,11 @@ const Sidebar = () => {
     fontWeight: 700,
     letterSpacing: "1px",
     textTransform: "uppercase",
-    width: "160px",
+    width: "70%", //100%
     textAlign: "center",
     margin: "auto",
-    whiteSpace: "nowrap",
+    whiteSpace: "normal", //nowrap
+    wordWrap: "break-word", 
     paddingBottom: "13px",
     position: "relative",
     display: "inline-block"
