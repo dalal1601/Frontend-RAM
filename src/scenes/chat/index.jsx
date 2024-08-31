@@ -23,6 +23,8 @@ const ChatRoom = () => {
     const [users, setUsers] = useState([]);
     const userDetails = useUserDetails();
     const messagesEndRef = useRef(null);
+    const [latestMessageTimestamps, setLatestMessageTimestamps] = useState(new Map());
+
 
 
     useEffect(() => {
@@ -63,10 +65,11 @@ const ChatRoom = () => {
             });
         }
     }, [stompClient]);
+    
     const onPublicMessageReceived = (payload) => {
         const payloadData = JSON.parse(payload.body);
     
-        // Update the public chat state
+        // Update the public chat state///////////////////////////////
         setPublicChats(prevChats => [...prevChats, payloadData]);
     
         // Handle notification for general chat messages
@@ -131,10 +134,9 @@ const ChatRoom = () => {
     const onMessageReceived = (payload) => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
-            playNotificationSound(); // Play sound notification
-    
+            playNotificationSound();
+            
             if (payloadData.receiverId && payloadData.receiverId !== userData.username) {
-                // Handle unread messages
                 const sender = payloadData.senderId;
                 setUnreadMessages(prev => {
                     const updated = new Map(prev);
@@ -145,14 +147,11 @@ const ChatRoom = () => {
                     return updated;
                 });
             } else if (!payloadData.receiverId) {
-                // It's a public message
-                setPublicChats(prevChats => {
-                    const updatedChats = [...prevChats, payloadData];
-                    return updatedChats;
-                });
+                setPublicChats(prevChats => [...prevChats, payloadData]);
             }
         }
     };
+    
     const onPrivateMessage = (payload) => {
         const payloadData = JSON.parse(payload.body);
         if (payloadData.type === "CHAT") {
@@ -176,10 +175,19 @@ const ChatRoom = () => {
                     updatedChats.set(chatKey, []);
                 }
                 updatedChats.get(chatKey).push(payloadData);
+    
+                // Update the latest timestamp
+                setLatestMessageTimestamps(prevTimestamps => {
+                    const updatedTimestamps = new Map(prevTimestamps);
+                    updatedTimestamps.set(payloadData.receiverId, payloadData.timestamp);
+                    return updatedTimestamps;
+                });
+    
                 return updatedChats;
             });
         }
     };
+    
     
     const onError = (err) => {
         console.log(err);
@@ -193,22 +201,22 @@ const ChatRoom = () => {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-
+    
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-
+    
             const data = await response.json();
-
+    
             const chatMessages = data
                 .filter(message => message.type === 'CHAT')
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
+    
             const generalMessages = chatMessages.filter(message => !message.receiverId);
             const privateMessages = chatMessages.filter(message => message.receiverId);
-
+    
             setPublicChats(generalMessages);
-
+    
             privateMessages.forEach(message => {
                 const key = [message.senderId, message.receiverId].sort().join("-");
                 setPrivateChats(prevChats => {
@@ -219,13 +227,40 @@ const ChatRoom = () => {
                     updatedChats.get(key).push(message);
                     return updatedChats;
                 });
+    
+                // Update latest timestamp for the user
+                setLatestTimestamps(prevTimestamps => {
+                    const updatedTimestamps = new Map(prevTimestamps);
+                    const userId = message.senderId === userData.username ? message.receiverId : message.senderId;
+                    if (!updatedTimestamps.has(userId) || new Date(message.timestamp) > new Date(updatedTimestamps.get(userId))) {
+                        updatedTimestamps.set(userId, message.timestamp);
+                    }
+                    console.log('Updated Timestamps:', Array.from(updatedTimestamps.entries())); // Log latest timestamps
+                    return updatedTimestamps;
+                });
             });
-
+    
         } catch (error) {
             console.error('Error fetching messages:', error);
         }
     };
-///////////////////////////////
+    
+    
+    
+    const [latestTimestamps, setLatestTimestamps] = useState(new Map());
+
+    useEffect(() => {
+        if (latestTimestamps.size > 0) {
+            fetchAllUsers();
+        }
+    }, [latestTimestamps]);
+    useEffect(() => {
+    if (latestTimestamps.size > 0) {
+        fetchAllUsers();
+    }
+}, [latestTimestamps]);
+
+/////////////////////////////////
 const fetchAllUsers = async () => {
     try {
         const response = await fetch('http://localhost:8080/User', {
@@ -240,11 +275,22 @@ const fetchAllUsers = async () => {
         }
 
         const data = await response.json();
-        setUsers(data);
+
+        // Update the latest timestamps for users
+        const sortedUsers = data
+            .map(user => ({
+                ...user,
+                latestTimestamp: latestMessageTimestamps.get(user.username) || '1970-01-01T00:00:00.000Z' // Default to a very old date if no timestamp is found
+            }))
+            .sort((a, b) => new Date(b.latestTimestamp) - new Date(a.latestTimestamp));
+
+        console.log('Sorted Users with Latest Timestamps:', sortedUsers); // Log sorted users with timestamps
+
+        setUsers(sortedUsers);
 
         const avatars = new Map();
         const fullNames = new Map();
-        data.forEach(user => {
+        sortedUsers.forEach(user => {
             avatars.set(user.username, user.avatarUrl);
             fullNames.set(user.username, user.fullname);
         });
@@ -255,6 +301,7 @@ const fetchAllUsers = async () => {
         console.error('Error fetching users:', error);
     }
 };
+
 
 const filterUsersByRole = (users, role) => {
     switch (role) {
@@ -274,48 +321,48 @@ const filterUsersByRole = (users, role) => {
         setUserData((prevData) => ({ ...prevData, message: value }));
     };
 ///////////////////////////////////
-    const sendValue = () => {
-        if (stompClient && stompClient.connected) {
-            const chatMessage = {
-                senderId: userData.username,
-                content: userData.message,
-                type: 'CHAT'
-            };
-            stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
-            // Instantly update public chat after sending
-            setPublicChats(prevChats => [...prevChats, chatMessage]);
-            // Clear the message input
-            setUserData((prevData) => ({ ...prevData, message: '' }));
-        } else {
-            console.error("STOMP client not connected");
-        }
-    };
-    
-    
-    const sendPrivateValue = () => {
-        if (stompClient && stompClient.connected && userData.receiverId) {
-            const chatMessage = {
-                senderId: userData.username,
-                receiverId: userData.receiverId,
-                content: userData.message,
-                type: 'CHAT'
-            };
-            stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
-            setUserData(prevData => ({ ...prevData, message: '' }));
-            // Update private chat immediately after sending..
-            const key = [userData.username, userData.receiverId].sort().join("-");
-            setPrivateChats(prevChats => {
-                const updatedChats = new Map(prevChats);
-                if (!updatedChats.has(key)) {
-                    updatedChats.set(key, []);
-                }
-                updatedChats.get(key).push(chatMessage);
-                return updatedChats;
-            });
-        } else {
-            console.error("STOMP client not connected or no receiver specified");
-        }
-    };
+const sendValue = () => {
+    if (stompClient && stompClient.connected) {
+        const chatMessage = {
+            senderId: userData.username,
+            content: userData.message,
+            type: 'CHAT',
+            timestamp: new Date().toISOString() // Add timestamp here
+        };
+        stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
+        setPublicChats(prevChats => [...prevChats, chatMessage]);
+        setUserData((prevData) => ({ ...prevData, message: '' }));
+    } else {
+        console.error("STOMP client not connected");
+    }
+};
+
+const sendPrivateValue = () => {
+    if (stompClient && stompClient.connected && userData.receiverId) {
+        const chatMessage = {
+            senderId: userData.username,
+            receiverId: userData.receiverId,
+            content: userData.message,
+            type: 'CHAT',
+            timestamp: new Date().toISOString() // Add timestamp here
+        };
+        stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
+        setUserData(prevData => ({ ...prevData, message: '' }));
+        
+        const key = [userData.username, userData.receiverId].sort().join("-");
+        setPrivateChats(prevChats => {
+            const updatedChats = new Map(prevChats);
+            if (!updatedChats.has(key)) {
+                updatedChats.set(key, []);
+            }
+            updatedChats.get(key).push(chatMessage);
+            return updatedChats;
+        });
+    } else {
+        console.error("STOMP client not connected or no receiver specified");
+    }
+};
+
     
 
     const handleUserClick = (fullname) => {
@@ -489,12 +536,41 @@ const filterUsersByRole = (users, role) => {
     };
     
     
+    
 
    // console.log('Tab:', tab);
     console.log('Private Chats:', privateChats);
     console.log('Selected Receiver ID:', userData.receiverId);
     const isGeneralChatVisible = userDetails && userDetails.role !== 'AUDITE';
+    const getLatestMessageTimestamp = (user) => {
+        const chatKey = [userData.username, user.fullname].sort().join("-");
+        const messages = privateChats.get(chatKey) || [];
+        if (messages.length === 0) return null;
     
+        const latestMessage = messages.reduce((latest, message) => {
+            const messageTime = new Date(message.timestamp);
+            return latest > messageTime ? latest : messageTime;
+        }, new Date(0)); // Initialize with the earliest possible date
+    
+        return latestMessage;
+    };
+    const sortedUsers = users.slice().sort((a, b) => {
+        const timestampA = getLatestMessageTimestamp(a);
+        const timestampB = getLatestMessageTimestamp(b);
+    
+        // Sort by latest message timestamp, with more recent messages coming first
+        if (timestampA && timestampB) {
+            return timestampB - timestampA;
+        }
+        if (timestampA) {
+            return -1; // `a` comes before `b`
+        }
+        if (timestampB) {
+            return 1; // `b` comes before `a`
+        }
+        return 0; // No change if both are null
+    });
+        
 
     return (
         <div className="chat-room">
@@ -512,19 +588,28 @@ const filterUsersByRole = (users, role) => {
                 )}
             </li>
         )}
-        {users.map((user) => (
-            <li key={user.username} onClick={() => handleUserClick(user.fullname)}>
-                <div className="avatar">{getInitials(user.fullname)}</div>
-                {user.fullname}
-                {unreadMessages.has(user.fullname) && (
-                    <span className="notification-badge">
-                        {unreadMessages.get(user.fullname).length}
-                    </span>
-                )}
-            </li>
-        ))}
+        {sortedUsers.map((user) => (
+    <li key={user.username} onClick={() => handleUserClick(user.fullname)}>
+        <div className="avatar">{getInitials(user.fullname)}</div>
+        {user.fullname}
+        {unreadMessages.has(user.fullname) && (
+            <span className="notification-badge">
+                {unreadMessages.get(user.fullname).length}
+            </span>
+        )}
+        {privateChats.get([userData.username, user.fullname].sort().join("-"))?.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map((message, index) => (
+    <span key={index} className="hidden-element">
+        {user.fullname === message.receiverId || message.senderId ? 
+          (message.timestamp ? new Date(message.timestamp).toLocaleString() : 'No timestamp') 
+          : ''}
+    </span>
+))}
+
+    </li>
+))}
     </ul>
 </div>
+
                 <div className="chat-content">
                     <div className="chat-room-header">
                         <h1>{tab === "GENERAL" ? "Chat Général" : tab}</h1>
