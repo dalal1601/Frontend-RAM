@@ -234,7 +234,6 @@
     color: white;
 }
 
-/* Adjust avatar size and spacing in chat message */
 .chat-message.from-me .message-header .avatar {
     background-color: #d12735; 
 }
