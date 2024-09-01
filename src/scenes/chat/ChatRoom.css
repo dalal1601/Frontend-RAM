@@ -30,7 +30,7 @@
 .chat-sidebar {
     width: 250px;
     background-color: #ffffff; /* White background for sidebar */
-    padding: 15px;
+    padding: 0;
     border-right: 1px solid #ddd;
     overflow-y: auto;
     height: calc(100vh - 0px);
@@ -172,6 +172,8 @@
     color: #007bff;
     cursor: pointer;
     font-size: 14px;
+    display: inline;
+    
 }
 
 .translate-button:hover {
@@ -264,4 +266,42 @@
 .hidden-element {
     display: none;
 }
+
+.message-timestamp-container {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px; /* Space between Traduction and the clock icon */
+}
+
+.clock-icon {
+    cursor: pointer;
+    margin-right: 8px;
+    color: #676768;
+    margin-left: 3px;
+}
+
+.message-timestamp {
+    font-size: 0.9rem;
+    color: #333;
+    
+}
+.sidebar-header {
+    top: 0; 
+    z-index: 1;
+    position: sticky;
+    height: 60px;
+    background-color: #d12735; /* Primary color for header */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for header */
+}
+.sidebar-header h3 {
+    margin: 0; /* Remove default margin */
+    font-size: 1.2em; /* Increase font size slightly */
+    color: white; /* Ensure text color matches header */
+  }
 
