@@ -48,7 +48,7 @@ const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
   const userId = useCurrentUserId(); // Retrieve current user ID
-  const userDetails = useUserDetails(); 
+  const userDetails = useUserDetails();
   //console.log('Sidebar userDetails:', userDetails); //testiiing 
   const fullNameStyle = {
     fontSize: "26px",
@@ -59,7 +59,7 @@ const Sidebar = () => {
     textAlign: "center",
     margin: "auto",
     whiteSpace: "normal", //nowrap
-    wordWrap: "break-word", 
+    wordWrap: "break-word",
     paddingBottom: "13px",
     position: "relative",
     display: "inline-block"
@@ -72,6 +72,20 @@ const Sidebar = () => {
     width: "75px",
     backgroundColor: "#c50000",
     position: "absolute"
+  };
+  const redDotStyle = {
+    position: 'relative',
+  };
+
+  const afterStyle = {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: '8px',
+    height: '8px',
+    backgroundColor: 'red',
+    borderRadius: '50%',
   };
 
   return (
@@ -113,12 +127,12 @@ const Sidebar = () => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                <img
-                  alt="profile-user"
-                  width="80px"
-                  height="50px"
-                  src={`../../assets/logoRAM.png`}
-                />
+                  <img
+                    alt="profile-user"
+                    width="80px"
+                    height="50px"
+                    src={`../../assets/logoRAM.png`}
+                  />
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -129,9 +143,9 @@ const Sidebar = () => {
 
           {!isCollapsed && (
             <Box mb="25px">
-              
+
               <Box textAlign="center">
-              <Typography
+                <Typography
                   variant="h2"
                   color={colors.grey[100]}
                   fontWeight="bold"
@@ -142,7 +156,7 @@ const Sidebar = () => {
                   <span style={{ ...fullNameBeforeAfterStyle, bottom: "0", right: "0" }}></span>
                 </Typography>
                 <Typography marginTop={1} variant="h5" color="#333">
-                {userDetails ? userDetails.role : "Loading..."}
+                  {userDetails ? userDetails.role : "Loading..."}
                 </Typography>
               </Box>
             </Box>
@@ -171,7 +185,7 @@ const Sidebar = () => {
               selected={selected}
               setSelected={setSelected}
             />
-             <Item
+            <Item
               title="Audités List"
               to="/AuditeList"
               icon={<PeopleOutlinedIcon />}
@@ -208,20 +222,20 @@ const Sidebar = () => {
               Audits
             </Typography>
             <Item
-              title="Profile Form"
+              title="Report"
               to="/form"
               icon={<PersonOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
-             <Item
+            <Item
               title="Formulaires"
               to="/formulaires"
               icon={<FileCopyIcon />}
               selected={selected}
               setSelected={setSelected}
             />
-            
+
             <Item
               title="Audits"
               to={`/Audits/${userId}`} // Ensure userId is a string
@@ -261,7 +275,12 @@ const Sidebar = () => {
             <Item
               title="Chat"
               to={`/chat/${userId}`}
-              icon={<ChatBubbleOutlineOutlinedIcon/>}
+              icon={
+                <div style={redDotStyle}>
+                  <ChatBubbleOutlineOutlinedIcon />
+                  <span style={afterStyle}></span>
+                </div>
+              }
               selected={selected}
               setSelected={setSelected}
             />
