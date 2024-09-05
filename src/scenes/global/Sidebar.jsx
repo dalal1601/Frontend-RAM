@@ -41,7 +41,6 @@ const Item = ({ title, to, icon, selected, setSelected }) => {
     </MenuItem>
   );
 };
-
 const Sidebar = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
