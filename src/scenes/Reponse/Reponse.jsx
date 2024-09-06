@@ -303,7 +303,7 @@ const [Fullnamo,setFullnamo]=useState("")
 
 const [auditeInfo, setAuditeInfo] = useState({
   
-  email: '',
+   
   emploi: '',
   phonenumber: '',
 });
@@ -666,9 +666,22 @@ const loadExistingReponses = async () => {
     try {
      const encodedDate = encodeURIComponent(observationsurplacedate);
 
- 
+     const response = await fetch(`http://localhost:8080/User/addAudit?auditId=${auditId} `, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email:auditeInfo.email,
+        fullname:Fullnamo
+      }),
+    });
 
-    const response = await fetch(`http://localhost:8080/Audit/${auditId}/audite?Fullname=${Fullnamo}&localDate=${encodedDate}`, {
+    if (!response.ok) {
+      throw new Error('Failed to save audite info');
+    }
+
+    const response2= await fetch(`http://localhost:8080/Audit/${auditId}/audite?localDate=${encodedDate}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -676,7 +689,7 @@ const loadExistingReponses = async () => {
         body: JSON.stringify(auditeInfo),
       });
 
-      if (!response.ok) {
+      if (!response2.ok) {
         throw new Error('Failed to save audite info');
       }
 
