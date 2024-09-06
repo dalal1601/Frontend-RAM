@@ -23,9 +23,17 @@ import {
   DialogActions,
   Modal,
   TextField,
+  IconButton 
 } from '@mui/material';
-import { styled, useTheme } from '@mui/system';
+import { Select, MenuItem } from '@mui/material';
+
+ import { styled, useTheme } from '@mui/system';
 import { useMediaQuery } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+
+
+
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
@@ -56,6 +64,8 @@ const SectionRow = styled(TableRow)(({ theme }) => ({
     padding: theme.spacing(1, 2),
   },
 }));
+
+
 
 const id = localStorage.getItem("id")
 
@@ -129,6 +139,16 @@ const InitialPopup = ({ open, onClose }) => {
           margin="normal"
           required
         />
+          <TextField
+          fullWidth
+          label="Emploi"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          margin="normal"
+          required
+        />
+
+
         <TextField
           fullWidth
           label="Email"
@@ -138,6 +158,29 @@ const InitialPopup = ({ open, onClose }) => {
           margin="normal"
           required
         />
+
+         <TextField
+          fullWidth
+          label="Numero de telephone"
+          type="numeric"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          margin="normal"
+          required
+        />
+        
+<TextField
+  fullWidth
+  label="Observation sur place Date"
+  type="date"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  margin="normal"
+  required
+  InputLabelProps={{
+    shrink: true,
+  }}
+/>
         <Button
           fullWidth
           variant="contained"
@@ -156,47 +199,55 @@ const InitialPopup = ({ open, onClose }) => {
     </Modal>
   );
 };
-
 const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems, existingReponses = {} }) => {
-  const theme = useTheme();
-  
   const getReponseStatus = (regleId) => {
-    if (checkedItems && checkedItems[regleId]) {
-      return checkedItems[regleId];
-    } else if (existingReponses && existingReponses.hasOwnProperty(regleId)) {
-      return existingReponses[regleId] ? 'Conform' : 'Non-Conform';
-    }
-    return 'Non-Conform';
+    const response = checkedItems[regleId] || existingReponses[regleId];
+    return response?.value || 'NON_CONFORME';
   };
-  
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'CONFORME': return 'success.main';
+      case 'NON_CONFORME': return 'error.main';
+      case 'OBSERVATION': return 'info.main';
+      case 'AMELIORATION': return 'warning.main';
+      default: return 'text.primary';
+    }
+  };
+
   return (
-    <StyledDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-    <DialogTitle>Confirmation des réponses</DialogTitle>
-    <DialogContent>
-        <TableContainer component={Paper} sx={{ marginTop: 2 }}>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Confirmation des réponses</DialogTitle>
+      <DialogContent>
+        <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
-                <StyledTableCell>Règle</StyledTableCell>
-                <StyledTableCell align="center">Réponse</StyledTableCell>
+                <TableCell>Règle</TableCell>
+                <TableCell align="center">Réponse</TableCell>
+                <TableCell align="center">Commentaire</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {formulaire.sectionList.map((section, sectionIndex) => (
                 <React.Fragment key={sectionIndex}>
-                  <SectionRow>
-                    <TableCell colSpan={2}>{section.description}</TableCell>
-                  </SectionRow>
+                  <TableRow>
+                    <TableCell colSpan={3} style={{ fontWeight: 'bold' }}>
+                      {section.description}
+                    </TableCell>
+                  </TableRow>
                   {section.regles.map((regle, regleIndex) => {
                     const reponseStatus = getReponseStatus(regle.id);
+                    const reponse = checkedItems[regle.id] || existingReponses[regle.id] || {};
                     return (
                       <TableRow key={`${sectionIndex}-${regleIndex}`}>
                         <TableCell>{regle.description}</TableCell>
                         <TableCell align="center">
-                          <Typography color={reponseStatus === 'Conform' ? 'success.main' : 'error.main'} fontWeight="bold">
-                            {reponseStatus === 'Conform' ? 'Conforme' : 'Non-Conforme'}
+                          <Typography color={getStatusColor(reponseStatus)} fontWeight="bold">
+                            {reponseStatus}
                           </Typography>
                         </TableCell>
+                        <TableCell align="center">{reponse.commentaire || ''}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -206,15 +257,15 @@ const ConfirmationDialog = ({ open, onClose, onConfirm, formulaire, checkedItems
           </Table>
         </TableContainer>
       </DialogContent>
-    <DialogActions>
-      <Button onClick={onClose} color="primary">
-        Annuler
-      </Button>
-      <Button onClick={onConfirm} variant="contained" sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}>
-        Confirmer
-      </Button>
-    </DialogActions>
-  </StyledDialog>
+      <DialogActions>
+        <Button onClick={onClose} color="primary">
+          Annuler
+        </Button>
+        <Button onClick={onConfirm} variant="contained" color="primary">
+          Confirmer
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
@@ -229,30 +280,199 @@ const Reponse = () => {
   const [checkedItems, setCheckedItems] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
-  const [showInitialPopup, setShowInitialPopup] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
+   const [userInfo, setUserInfo] = useState(null);
   const [userId, setUserId] = useState(null);
   const [fullname,setFullname]=useState(null);
   const [isEditable, setIsEditable] = useState(true);
   const [reponseId, setReponseId] = useState(null);
   const [existingReponses, setExistingReponses] = useState({});
+  const [isGeneralitiesSent, setIsGeneralitiesSent] = useState(false);
+  const [summaryOfAirlinesAssisted, setSummaryOfAirlinesAssisted] = useState('');
+const [numberOfFlightsHandled, setNumberOfFlightsHandled] = useState('');
+const [numberOfCheckInAgents, setNumberOfCheckInAgents] = useState('');
+const [numberOfRampAgents, setNumberOfRampAgents] = useState('');
+const [numberOfSupervisors, setNumberOfSupervisors] = useState('');
+const [numberOfGSEMaintenance, setNumberOfGSEMaintenance] = useState('');
+const [initialRowCount, setInitialRowCount] = useState(0);
+const[observationsurplacedate,setObservationsurplacedate]=useState("");
+const [isAuditeRegistered, setIsAuditeRegistered] = useState(false);
+const [Fullnamo,setFullnamo]=useState("")
 
+
+
+
+const [auditeInfo, setAuditeInfo] = useState({
+  
+  email: '',
+  emploi: '',
+  phonenumber: '',
+});
+
+
+
+const isAllFieldsFilled = useMemo(() => {
+  return summaryOfAirlinesAssisted !== '' &&
+         numberOfFlightsHandled !== '' &&
+         numberOfCheckInAgents !== '' &&
+         numberOfRampAgents !== '' &&
+         numberOfSupervisors !== '' &&
+         numberOfGSEMaintenance !== '';
+}, [summaryOfAirlinesAssisted, numberOfFlightsHandled, numberOfCheckInAgents, numberOfRampAgents, numberOfSupervisors, numberOfGSEMaintenance]);
+  
+const loadExistingGeneralities = async () => {
+  try {
+    const response = await fetch(`http://localhost:8080/Audit/${auditId}/generalities`);
+    if (response.ok) {
+      const data = await response.json();
+      setSummaryOfAirlinesAssisted(data.generalities.summaryofairlinesassisted || '');
+      setNumberOfFlightsHandled(data.generalities.numberofflightshandledperdayinmonth?.toString() || '');
+      setNumberOfCheckInAgents(data.generalities.numberofcheckinandboardingagents?.toString() || '');
+      setNumberOfRampAgents(data.generalities.numberoframpagents?.toString() || '');
+      setNumberOfSupervisors(data.generalities.numberofsupervisors?.toString() || '');
+      setNumberOfGSEMaintenance(data.generalities.numberofgsemaintenance?.toString() || '');
+      setIsGeneralitiesSent(data.isGeneralitiesSent);
+    }
+  } catch (error) {
+    console.error('Error loading existing generalities:', error);
+  }
+};
+
+  const handleSaveGeneralities = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`http://localhost:8080/Audit/${auditId}/generalities`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summaryofairlinesassisted: summaryOfAirlinesAssisted,
+          numberofflightshandledperdayinmonth: numberOfFlightsHandled,
+          numberofcheckinandboardingagents: numberOfCheckInAgents,
+          numberoframpagents: numberOfRampAgents,
+          numberofsupervisors: numberOfSupervisors,
+          numberofgsemaintenance: numberOfGSEMaintenance,
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to save generalities');
+      }
+  
+      setSnackbar({ open: true, message: 'Généralités sauvegardées avec succès!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendGeneraliteies = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`http://localhost:8080/Audit/${auditId}/send-generalities`, {
+        method: 'PUT',
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to send generalities');
+      }
+  
+      const updatedAudit = await response.json();
+      setIsGeneralitiesSent(updatedAudit.generalitiesSent);
+      setSnackbar({ open: true, message: 'Généralités envoyées avec succès!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  
+  const handleSavePersonnesRencontrees = async () => {
+    setIsSubmitting(true);
+    try {
+      const personnesAEnregistrer = rows
+        .filter(row => !row.isSaved && row.fullName && row.title)
+        .map(row => ({
+          fullname: row.fullName,
+          title: row.title
+        }));
+  
+      console.log("Données à envoyer:", personnesAEnregistrer);
+      
+      if (personnesAEnregistrer.length === 0) {
+        setSnackbar({ open: true, message: 'Aucune nouvelle personne à enregistrer', severity: 'info' });
+        return;
+      }
+  
+      const response = await fetch(`http://localhost:8080/Audit/${auditId}/personnes-rencontrees`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(personnesAEnregistrer),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Échec de l'enregistrement des personnes rencontrées");
+      }
+  
+      const updatedAudit = await response.json();
+      setRows(updatedAudit.personneRencontresees.map(p => ({
+        fullName: p.fullName,
+        title: p.title,
+        isSaved: true
+      })));
+  
+      setSnackbar({ open: true, message: 'Personnes rencontrées enregistrées avec succès!', severity: 'success' });
+    } catch (error) {
+      console.error("Error details:", error);
+      setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
 
   const handleSave = async () => {
     setIsSubmitting(true);
     
-    const reponses = Object.entries(checkedItems)
-      .map(([regleId, value]) => ({
-        [regleId]: value === 'Conform'
-      }));
-
+    const invalidRules = Object.entries(checkedItems).filter(([_, value]) => 
+      value.value !== 'CONFORME' && !value.commentaire.trim()
+    );
+  
+    if (invalidRules.length > 0) {
+      setSnackbar({ 
+        open: true, 
+        message: 'Veuillez ajouter un commentaire pour toutes les règles non conformes', 
+        severity: 'error' 
+      });
+      setIsSubmitting(false);
+      return;
+    }
+  
+    const reponses = Object.entries(checkedItems).map(([regleId, value]) => {
+      const reponse = {
+        [regleId]: {
+          value: value.value,
+          commentaire: value.commentaire.trim()
+        }
+      };
+      
+      if (value.value === 'NON_CONFORME' && value.nonConformeLevel) {
+        reponse[regleId].nonConformeLevel = value.nonConformeLevel;
+      }
+      
+      return reponse;
+    });
+  
     const payload = {
       audit: { id: auditId },
       reponses: reponses,
       temporary: true
     };
-
+  
     try {
       const response = await fetch('http://localhost:8080/Reponse', {
         method: 'POST',
@@ -261,25 +481,40 @@ const Reponse = () => {
         },
         body: JSON.stringify(payload),
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to save data');
       }
-
+  
       const result = await response.json();
       setReponseId(result.id)
       setSnackbar({ open: true, message: 'Données enregistrées avec succès!', severity: 'success' });
-
+  
       setExistingReponses(prev => ({
         ...prev,
         ...Object.fromEntries(reponses.map(r => [Object.keys(r)[0], Object.values(r)[0]]))
       }));
-
+  
     } catch (error) {
       setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const [rows, setRows] = useState([
+    { fullName: '', title: '', isSaved: false },
+  ]);
+
+  const addRow = () => {
+    setRows([...rows, { fullName: '', title: '', isSaved: false }]);
+  };
+
+  const handleChange = (index, field, value) => {
+    const newRows = [...rows];
+    newRows[index][field] = value;
+    console.log(`Updated row ${index}, field ${field} to ${value}`);
+    setRows(newRows);
   };
 
 
@@ -302,7 +537,11 @@ const loadExistingReponses = async () => {
     const data = await response.json();
     if (data && data.reponses) {
       const reponses = data.reponses.reduce((acc, reponse) => {
-        acc[reponse.regle.id] = reponse.value ? 'Conform' : 'Non-Conform';
+        acc[reponse.regle.id] = {
+          value: reponse.value,
+          commentaire: reponse.commentaire,
+          nonConformeLevel: reponse.nonConformeLevel
+        };
         return acc;
       }, {});
       setExistingReponses(reponses);
@@ -335,9 +574,7 @@ const loadExistingReponses = async () => {
       
       setAudit(auditData);
 
-      if(!auditData.audite){
-        setShowInitialPopup(true)
-      }
+      
 
       const formulaireId = auditData.formulaire.id;
       const formulaireResponse = await fetch(`http://localhost:8080/Formulaire/${formulaireId}`);
@@ -355,35 +592,57 @@ const loadExistingReponses = async () => {
     }
   };
 
+  const loadExistingPersonnesRencontrees = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/Audit/${auditId}/personnes-rencontrees`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const loadedRows = data.map(p => ({
+            fullName: p.fullname,
+            title: p.title,
+            isSaved: true
+          }));
+          setRows(loadedRows);
+          setInitialRowCount(loadedRows.length);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des personnes rencontrées:', error);
+    }
+  };
+  
+
+
   useEffect(() => {
     fetchAuditAndFormulaire();
     loadExistingReponses();
+    loadExistingGeneralities();
+    loadExistingPersonnesRencontrees();
+
   }, [auditId]);
 
   const handleCheckboxChange = (regleId, value) => {
     if (isEditable) {
       setCheckedItems(prev => {
         const newCheckedItems = { ...prev };
-        if (newCheckedItems[regleId] === value) {
+        if (newCheckedItems[regleId]?.value === value) {
           delete newCheckedItems[regleId];
         } else {
-          newCheckedItems[regleId] = value;
+          newCheckedItems[regleId] = { 
+            value: value, 
+            commentaire: newCheckedItems[regleId]?.commentaire || ''
+          };
+          if (value === 'NON_CONFORME') {
+            newCheckedItems[regleId].nonConformeLevel = newCheckedItems[regleId]?.nonConformeLevel || 1;
+          } else {
+            delete newCheckedItems[regleId].nonConformeLevel;
+          }
         }
         return newCheckedItems;
       });
-      setExistingReponses(prev => {
-        const newExistingReponses = { ...prev };
-        if (newExistingReponses[regleId] === (value === 'Conform')) {
-          delete newExistingReponses[regleId];
-        } else {
-          newExistingReponses[regleId] = (value === 'Conform');
-        }
-        return newExistingReponses;
-      });
     }
   };
-
-
   const isAllRulesAnswered = useMemo(() => {
     if (!formulaire) return false;
     
@@ -397,168 +656,178 @@ const loadExistingReponses = async () => {
   }, [formulaire, checkedItems, existingReponses]);
 
 
+  const handleAuditeInfoChange = (field, value) => {
+    setAuditeInfo(prev => ({ ...prev, [field]: value }));
+  };
 
+  const handleSaveAuditeInfo = async () => {
+    setIsSubmitting(true);
+    setIsAuditeRegistered(true)
+    try {
+     const encodedDate = encodeURIComponent(observationsurplacedate);
+
+ 
+
+    const response = await fetch(`http://localhost:8080/Audit/${auditId}/audite?Fullname=${Fullnamo}&localDate=${encodedDate}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(auditeInfo),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save audite info');
+      }
+
+      setSnackbar({ open: true, message: 'Informations de l\'audité enregistrées avec succès!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  useEffect(() => {
+    const fetchAuditDetails = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/Audit/${auditId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch audit details');
+        }
+        const auditData = await response.json();
+
+        console.log("------------------->",auditData)
+        setIsAuditeRegistered(auditData.auditeregistred);
+        if (auditData.auditeregistred) {
+          setAuditeInfo({
+            email: auditData.audite.email,
+            emploi: auditData.audite.emploi,
+            phonenumber: auditData.audite.phonenumber,
+          });
+          setFullnamo(auditData.audite.fullname);
+          setObservationsurplacedate(auditData.observationsurplacedate);
+        }
+      } catch (error) {
+        console.error('Error fetching audit details:', error);
+      }
+    };
+
+    fetchAuditDetails();
+  }, [auditId]);
+
+
+
+  const handleNonConformeLevelChange = (regleId, level) => {
+    if (isEditable) {
+      setCheckedItems(prev => ({
+        ...prev,
+        [regleId]: { 
+          ...prev[regleId],
+          nonConformeLevel: level 
+        }
+      }));
+    }
+  };
+
+
+  const removeRow = () => {
+    if (rows.length > initialRowCount) {
+      setRows(rows.slice(0, -1));
+    }
+  };
   const handleConfirmSave = async () => {
     setIsSubmitting(true);
     setOpenConfirmDialog(false);
-
-    const reponses = Object.entries(checkedItems).map(([regleId, value]) => ({
-        [regleId]: value === 'Conform'
-    }));
-
-    const payload = {
-        audit: { id: auditId },
-        reponses: reponses,
-    };
-
-    // Fetch Regles and their associated actionCorrectives
-    const reglesResponse = await fetch('http://localhost:8080/Regle');
-    const regles = await reglesResponse.json();
-
-    const regleMap = regles.reduce((map, regle) => {
-        map[regle.id] = regle;
-        return map;
-    }, {});
-
-    // Create ActionCorrective objects from non-conforming actions
-    const nonConformingActions = Object.entries(checkedItems)
-        .filter(([regleId, value]) => value === 'Non-Conform')
-        .map(([regleId]) => {
-            const regle = regleMap[regleId];
-            return {
-                auditId: auditId,
-                descriptions: [regle ? regle.actionCorrective : `Corrective action required for rule ${regleId}`]
-            };
-        });
-
-    try {
-        // Save the response
-        const response = await fetch('http://localhost:8080/Reponse', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.text();
-            console.error('Failed to save data:', errorData);
-            throw new Error(errorData || 'Failed to save data');
-        }
-
-        const result = await response.json();
-        setAudit(result.audit);
-
-        if (!result.id) {
-            throw new Error('Missing reponseId from save response');
-        }
-
-        // Save ActionCorrective objects if there are any non-conforming actions
-        if (nonConformingActions.length > 0) {
-            const actionCorrectiveResponse = await fetch('http://localhost:8080/ActionCorrective/save-bulk', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(nonConformingActions),
-            });
-
-            if (!actionCorrectiveResponse.ok) {
-                const errorText = await actionCorrectiveResponse.text();
-                console.error('Failed to save ActionCorrective:', errorText);
-                throw new Error(errorText || 'Failed to save ActionCorrective');
-            }
-        }
-
-        // Save the PDF
-        const pdfResponse = await fetch('http://localhost:8080/Reponse/save-pdf', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                rapportId: result.id,
-            }),
-        });
-
-        if (!pdfResponse.ok) {
-            const errorText = await pdfResponse.text();
-            console.error('Failed to save PDF:', errorText);
-            throw new Error(errorText || 'Failed to save PDF');
-        }
-
-        // Send the first email
-        const emailResponse1 = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ reponseId: result.id }),
-        });
-
-        if (!emailResponse1.ok) {
-            const errorText = await emailResponse1.text();
-            console.error('Failed to send email:', errorText);
-            throw new Error(errorText || 'Failed to send email');
-        }
-
-        // Send the second email
-        const emailResponse2 = await fetch('http://localhost:8080/Reponse/send-pdf-email2', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ reponseId: result.id }),
-        });
-
-        if (!emailResponse2.ok) {
-            const errorText = await emailResponse2.text();
-            console.error('Failed to send email:', errorText);
-            throw new Error(errorText || 'Failed to send email');
-        }
-
-        // Send notifications
-        const notificationResponse = await fetch('http://localhost:8080/Reponse/send-notifications', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                reponseId: result.id,
-                auditId: auditId,
-                message: `L'auditeur ${fullname} vient de terminer son audit. Veuillez consulter votre email.`
-            }),
-        });
-
-        if (!notificationResponse.ok) {
-            const errorText = await notificationResponse.text();
-            console.error('Failed to send notifications:', errorText);
-            throw new Error(errorText || 'Failed to send notifications');
-        }
-
-        const finalise = await fetch(`http://localhost:8080/Reponse/finalize/${reponseId}`, {
-          method: 'PUT',
-        });
-    
-        if (!finalise.ok) {
-          throw new Error('Failed to finalize response');
-        }
-        setIsEditable(false);
-
-        setSnackbar({ open: true, message: 'Données enregistrées, emails envoyés et notifications envoyées avec succès!', severity: 'success' });
-    } catch (error) {
-        setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
-    } finally {
-        setIsSubmitting(false);
-    }
-};
   
-  const handleInitialPopupClose = (info) => {
-    setUserInfo(info);
-    setUserId(info.id);
-    setShowInitialPopup(false);
-  };
+    const reponses = Object.entries({...checkedItems, ...existingReponses}).map(([regleId, value]) => ({
+      [regleId]: value
+    }));
+  
+    const payload = {
+      audit: { id: auditId },
+      reponses: reponses,
+    };
+  
+   try {
+    // Save the response
+    const saveResponse = await fetch('http://localhost:8080/Reponse', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!saveResponse.ok) {
+      throw new Error('Failed to save data');
+    }
+
+    const result = await saveResponse.json();
+    setAudit(result.audit);
+
+    if (!result.id) {
+      throw new Error('Missing reponseId from save response');
+    }
+
+    // Save the PDF
+    const pdfResponse = await fetch('http://localhost:8080/Reponse/save-pdf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        rapportId: result.id,
+      }),
+    });
+
+    if (!pdfResponse.ok) {
+      throw new Error('Failed to save PDF');
+    }
+
+
+  
+
+    // Send the first email
+    const emailResponse1 = await fetch('http://localhost:8080/Reponse/send-pdf-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ reponseId: result.id }),
+    });
+
+    if (!emailResponse1.ok) {
+      throw new Error('Failed to send first email');
+    }
+
+
+   
+    const finalise = await fetch(`http://localhost:8080/Reponse/finalize/${result.id}`, {
+      method: 'PUT',
+    });
+
+    if (!finalise.ok) {
+      throw new Error('Failed to finalize response');
+    }
+
+    setIsEditable(false);
+    setSnackbar({ open: true, message: 'Données enregistrées, emails envoyés et notifications envoyées avec succès!', severity: 'success' });
+  } catch (error) {
+    setSnackbar({ open: true, message: `Erreur: ${error.message}`, severity: 'error' });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+const handleCommentChange = (regleId, comment) => {
+  if (isEditable) {
+    setCheckedItems(prev => ({
+      ...prev,
+      [regleId]: { ...prev[regleId], commentaire: comment }
+    }));
+  }
+};
 
   if (loading) return <LinearProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
@@ -576,67 +845,554 @@ const loadExistingReponses = async () => {
         color: theme.palette.text.primary,
       }}
     >
-      <InitialPopup open={showInitialPopup} onClose={handleInitialPopupClose} />
     
+
+      <Box sx={{border : 'solid',width:'50%' ,marginLeft:30,justifyContent:'center'}}>
       <Typography variant="h1" component="h1" sx={{ fontSize: '2.5rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px', color: '#C2002F' }}>
-        Détails de l'Audit
+      AUDIT DE TERRAIN <br/>OPÉRATIONNEL 
+      </Typography>
+    </Box>  
+
+      <Typography variant="subtitle1" sx={{ textAlign: 'justify', marginBottom: '20px', marginTop: 5, fontSize: '1rem', lineHeight: '1.5', fontFamily: 'serif' }}>
+    Ce document d'évaluation identifie les exigences en matière d'assistance en escale 
+    vérifiées par l'auditeur de Royal Air Maroc lors d'un audit initial (évaluation) ou récurrent 
+    d'un prestataire d'assistance en escale. Ce document est également utilisé lors d'un audit interne.
+    Les éléments énumérés dans cette liste de contrôle sont censés répondre aux normes de l'OACI, 
+    à la réglementation marocaine de l'aviation civile, aux normes IATA & aux règles particulières 
+    de Royal Air Maroc.
+</Typography>
+
+      <TableContainer component={Paper} sx={{ marginBottom: 5, border: '1px solid #000000', overflow: 'hidden' }}>
+    <Table
+      sx={{
+        minWidth: 650,
+        borderCollapse: 'separate',
+        borderSpacing: 0,
+        '& .MuiTableCell-root': {
+          borderRight: '1px solid #000000',
+          borderBottom: '1px solid #000000',
+          padding: '16px',
+        },
+        '& .MuiTableRow-root:last-child .MuiTableCell-root': {
+          borderBottom: 'none',
+        },
+        '& .MuiTableCell-root:last-child': {
+          borderRight: 'none',
+        },
+      }}
+      aria-label="dynamic table"
+    >
+     
+      
+      <TableBody>
+        
+          <TableRow >
+          <TableCell 
+    sx={{ 
+      fontWeight: 'bold',  
+      backgroundColor: '#f5f5f5',
+      padding: '22px',
+      minWidth: '300px', // Ajout d'une largeur minimale
+    }}
+  >
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center',
+      flexWrap: 'nowrap', // Empêche le retour à la ligne
+    }}>
+      <Typography 
+        sx={{ 
+          marginRight: '8px',
+          whiteSpace: 'nowrap', // Empêche le retour à la ligne du texte
+          minWidth: 'fit-content', // Assure que le texte ne soit pas coupé
+        }}
+      >
+        Nom complet :
+      </Typography>
+      <TextField
+
+        fullWidth
+        value={Fullnamo}
+        onChange={(e) => setFullnamo(e.target.value)}
+        variant="standard"
+          InputProps={{
+                    readOnly: isAuditeRegistered,
+                    disableUnderline: true,
+                    style: { fontSize: '14px' }
+                  }}
+      />
+    </div>
+  </TableCell>
+
+  <TableCell 
+    sx={{ 
+      fontWeight: 'bold',  
+      backgroundColor: '#f5f5f5',
+      padding: '22px',
+      minWidth: '300px', // Ajout d'une largeur minimale
+    }}
+  >
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center',
+      flexWrap: 'nowrap', // Empêche le retour à la ligne
+    }}>
+      <Typography 
+        sx={{ 
+          marginRight: '8px',
+          whiteSpace: 'nowrap', // Empêche le retour à la ligne du texte
+          minWidth: 'fit-content', // Assure que le texte ne soit pas coupé
+        }}
+      >
+        Emploi :
+      </Typography>
+      <TextField
+        fullWidth
+        variant="standard"
+        value={auditeInfo.emploi}
+        onChange={(e) => handleAuditeInfoChange('emploi', e.target.value)}
+        InputProps={{
+                    readOnly: isAuditeRegistered,
+                    disableUnderline: true,
+                    style: { fontSize: '14px' }
+                  }}
+      />
+    </div>
+  </TableCell>
+          
+          </TableRow>
+          <TableRow >
+          <TableCell 
+    sx={{ 
+      fontWeight: 'bold',  
+      backgroundColor: '#f5f5f5',
+      padding: '22px',
+      minWidth: '300px', // Ajout d'une largeur minimale
+    }}
+  >
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center',
+      flexWrap: 'nowrap', // Empêche le retour à la ligne
+    }}>
+      <Typography 
+        sx={{ 
+          marginRight: '8px',
+          whiteSpace: 'nowrap', // Empêche le retour à la ligne du texte
+          minWidth: 'fit-content', // Assure que le texte ne soit pas coupé
+        }}
+      >
+        Email :
+      </Typography>
+      <TextField
+        fullWidth
+        variant="standard"
+        value={auditeInfo.email}
+        onChange={(e) => handleAuditeInfoChange('email', e.target.value)}
+        InputProps={{
+                    readOnly: isAuditeRegistered,
+                    disableUnderline: true,
+                    style: { fontSize: '14px' }
+                  }}
+      />
+    </div>
+  </TableCell>
+
+  <TableCell 
+    sx={{ 
+      fontWeight: 'bold',  
+      backgroundColor: '#f5f5f5',
+      padding: '22px',
+      minWidth: '300px', // Ajout d'une largeur minimale
+    }}
+  >
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center',
+      flexWrap: 'nowrap', // Empêche le retour à la ligne
+    }}>
+      <Typography 
+        sx={{ 
+          marginRight: '8px',
+          whiteSpace: 'nowrap', // Empêche le retour à la ligne du texte
+          minWidth: 'fit-content', // Assure que le texte ne soit pas coupé
+        }}
+      >
+        Numero de telephone :
+      </Typography>
+      <TextField
+        fullWidth
+        variant="standard"
+        value={auditeInfo.phonenumber}
+        onChange={(e) => handleAuditeInfoChange('phonenumber', e.target.value)}
+        InputProps={{
+                    readOnly: isAuditeRegistered,
+                    disableUnderline: true,
+                    style: { fontSize: '14px' }
+                  }}
+      />
+    </div>
+  </TableCell>
+          
+          </TableRow>
+
+          <TableRow>
+          <TableCell 
+            colSpan={2} 
+            sx={{ 
+              fontWeight: 'bold',  
+              backgroundColor: '#f5f5f5',
+              padding: '22px',
+              minWidth: '300px',
+            }}
+          >
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              flexWrap: 'nowrap',
+            }}>
+              <Typography 
+  sx={{ 
+    marginRight: '8px',
+    whiteSpace: 'nowrap',
+    minWidth: 'fit-content',
+  }}
+>
+  Observation sur place Date :
+</Typography>
+<TextField
+  value={observationsurplacedate}
+  onChange={(e) => setObservationsurplacedate(e.target.value)}
+  fullWidth
+  type="date"
+  variant="standard"
+  InputProps={{
+                    readOnly: isAuditeRegistered,
+                    disableUnderline: true,
+                    style: { fontSize: '14px' }
+                  }}
+/>
+            </div>
+          </TableCell>
+        </TableRow>
+          
+    
+      </TableBody>
+    </Table>
+  </TableContainer>
+
+
+  <Grid container justifyContent="center" spacing={2}  sx={{marginBottom:13}}>
+     
+        <>
+        <Grid item>
+        <Button
+          variant="contained"
+          sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}
+          onClick={handleSaveAuditeInfo}
+          disabled={isSubmitting || isAuditeRegistered}
+          >
+          {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Enregistrer'}
+         </Button>
+      </Grid>
+      <Grid item>
+         
+
+      </Grid>
+      </>
+ 
+      </Grid> 
+
+
+
+
+      <Typography variant="h3" component="h1" sx={{ marginTop:5,fontWeight: 'bold', color: '#C2002F', marginBottom: '10px' }}>
+        GENERALITIES
       </Typography>
 
-      {userInfo && (
-        <Typography variant="subtitle1" sx={{ textAlign: 'center', marginBottom: '20px' }}>
-          Bienvenue, {userInfo.name}!
-        </Typography>
-      )}
+      <TableContainer component={Paper} sx={{marginBottom:5}} >
+  <Table 
+    sx={{ 
+      minWidth: 650,
+      borderCollapse: 'collapse',
+      '& .MuiTableCell-root': {
+        borderRight: '1px solid rgba(0, 0, 0, 0.3)',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.3)',
+      },
+      '& .MuiTableCell-root:last-child': {
+        borderRight: 'none',
+      },
+      '& .MuiTableRow-root:last-child .MuiTableCell-root': {
+        borderBottom: 'none',
+      },
+    }} 
+    aria-label="simple table"
+  >
+    <TableHead>
+    </TableHead>
+    <TableBody>
+      <TableRow>
+        <TableCell sx={{fontWeight: 'bold'}}>Summary of airlines assisted</TableCell>
+        <TableCell><TextField sx={{width:"100%"}}  value={summaryOfAirlinesAssisted}
+                                                   onChange={(e) => setSummaryOfAirlinesAssisted(e.target.value)}
+                                                   disabled={isGeneralitiesSent}></TextField></TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell sx={{fontWeight: 'bold'}} >Number of flights handled per day/month</TableCell>
+        <TableCell><TextField sx={{width:"100%"}}  value={numberOfFlightsHandled}
+                                                   onChange={(e) => setNumberOfFlightsHandled(e.target.value)}
+                                                   disabled={isGeneralitiesSent}></TextField></TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell sx={{fontWeight: 'bold'}} >Number of check-in and boarding agents</TableCell>
+        <TableCell><TextField sx={{width:"100%"}}  value={numberOfCheckInAgents}
+                                                   onChange={(e) => setNumberOfCheckInAgents(e.target.value)}
+                                                   disabled={isGeneralitiesSent}></TextField></TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell sx={{fontWeight: 'bold'}} >Number of ramp agents</TableCell>
+        <TableCell><TextField sx={{width:"100%"}} value={numberOfRampAgents}
+                                                   onChange={(e) => setNumberOfRampAgents(e.target.value)}
+                                                   disabled={isGeneralitiesSent}></TextField></TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell sx={{fontWeight: 'bold'}} >Number of supervisors</TableCell>
+        <TableCell><TextField sx={{width:"100%"}} value={numberOfSupervisors}
+                                                   onChange={(e) => setNumberOfSupervisors(e.target.value)}
+                                                   disabled={isGeneralitiesSent}></TextField></TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell sx={{fontWeight: 'bold'}} >Number of GSE maintenance</TableCell>
+        <TableCell><TextField sx={{width:"100%"}}value={numberOfGSEMaintenance}
+                                                   onChange={(e) => setNumberOfGSEMaintenance(e.target.value)}
+                                                   disabled={isGeneralitiesSent}></TextField></TableCell>
+      </TableRow>
+    </TableBody>
+  </Table>
+</TableContainer>
 
-      <Typography variant="h2" component="h2" sx={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '20px', color: theme.palette.text.primary }}>
-        Formulaire: {formulaire.nom}
+<Grid container justifyContent="center" spacing={2} sx={{marginBottom:13}}>
+  <Grid item>
+    <Button
+      variant="contained"
+      sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}
+      onClick={handleSaveGeneralities}
+      disabled={isSubmitting || isGeneralitiesSent}
+    >
+      {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Enregistrer'}
+    </Button>
+  </Grid>
+  <Grid item>
+    <Button
+      variant="contained"
+      sx={{ backgroundColor: '#4CAF50', '&:hover': { backgroundColor: '#45a049' } }}
+      onClick={handleSendGeneraliteies}
+      disabled={isSubmitting || isGeneralitiesSent || !isAllFieldsFilled}
+    >
+      {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Envoyer'}
+    </Button>
+  </Grid>
+</Grid>
+
+<Typography variant="h3" component="h1" sx={{ marginTop:5,fontWeight: 'bold', color: '#C2002F', marginBottom: 2 }}>
+            Les personnes rencontrées
       </Typography>
 
-      <TableContainer component={Paper} sx={{ marginBottom: '20px' }}>
-        <Table sx={{ minWidth: 700 }} aria-label="form details">
-          <TableHead>
-            <TableRow>
-              <StyledTableCell>Sections</StyledTableCell>
-              <StyledTableCell>Règles</StyledTableCell>
-              <StyledTableCell>Conforme</StyledTableCell>
-              <StyledTableCell>Non-Conforme</StyledTableCell>
+<>
+  <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 2, gap: 1 }}>
+  <IconButton 
+  onClick={removeRow} 
+  size="small" 
+  sx={{ 
+    color: '#d32f2f', 
+    border: '1px solid #d32f2f', 
+    borderRadius: '50%',
+    '&:hover': {
+      backgroundColor: '#d32f2f',
+      color: 'white',
+    }
+  }}
+  disabled={rows.length <= initialRowCount}
+>
+  <RemoveIcon />
+</IconButton>
+    <IconButton 
+      onClick={addRow} 
+      size="small" 
+      sx={{ 
+        color: '#1976d2', 
+        border: '1px solid #1976d2', 
+        borderRadius: '50%',
+        '&:hover': {
+          backgroundColor: '#1976d2',
+          color: 'white',
+        }
+      }}
+    >
+      <AddIcon />
+    </IconButton>
+  </Box>
+  
+  <TableContainer component={Paper} sx={{ marginBottom:5, border: '1px solid #000000', overflow: 'hidden' }}>
+    <Table
+      sx={{
+        minWidth: 650,
+        borderCollapse: 'separate',
+        borderSpacing: 0,
+        '& .MuiTableCell-root': {
+          borderRight: '1px solid #000000',
+          borderBottom: '1px solid #000000',
+          padding: '16px',
+        },
+        '& .MuiTableRow-root:last-child .MuiTableCell-root': {
+          borderBottom: 'none',
+        },
+        '& .MuiTableCell-root:last-child': {
+          borderRight: 'none',
+        },
+      }}
+      aria-label="dynamic table"
+    >
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', backgroundColor: '#f5f5f5' }}>Full name</TableCell>
+          <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', backgroundColor: '#f5f5f5' }}>Title</TableCell>
+        </TableRow>
+      </TableHead>
+      
+      <TableBody>
+  {rows.map((row, index) => (
+    <TableRow key={index}>
+      <TableCell>
+        <TextField 
+          fullWidth 
+          variant="standard"
+          value={row.fullName} 
+          onChange={(e) => handleChange(index, 'fullName', e.target.value)}
+          disabled={row.isSaved}
+          InputProps={{
+            disableUnderline: true,
+            style: { fontSize: '14px' }
+          }}
+        />
+      </TableCell>
+      <TableCell>
+        <TextField 
+          fullWidth 
+          variant="standard"
+          value={row.title} 
+          onChange={(e) => handleChange(index, 'title', e.target.value)}
+          disabled={row.isSaved}
+          InputProps={{
+            disableUnderline: true,
+            style: { fontSize: '14px' }
+          }}
+        />
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+    </Table>
+  </TableContainer>
+</>
+
+
+<Grid container justifyContent="center" spacing={2}  sx={{marginBottom:13}}>
+     
+     <>
+     <Grid item>
+     <Button
+  variant="contained"
+  sx={{ backgroundColor: '#C2002F', '&:hover': { backgroundColor: '#A5002A' } }}
+  onClick={handleSavePersonnesRencontrees}
+  disabled={isSubmitting || !rows.some(row => !row.isSaved && row.fullName && row.title)}
+>
+  {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Enregistrer'}
+</Button>
+   </Grid>
+  
+   </>
+
+   </Grid> 
+
+
+
+
+
+
+<TableContainer component={Paper} sx={{ marginBottom: '20px' }}>
+  <Table sx={{ minWidth: 700 }} aria-label="form details">
+    <TableHead>
+      <TableRow>
+        <StyledTableCell>Sections</StyledTableCell>
+        <StyledTableCell>Règles</StyledTableCell>
+        <StyledTableCell>Conforme</StyledTableCell>
+        <StyledTableCell>Non-Conforme</StyledTableCell>
+        <StyledTableCell>Observation</StyledTableCell>
+        <StyledTableCell>Amélioration</StyledTableCell>
+        <StyledTableCell>Niveau</StyledTableCell>
+        <StyledTableCell>Commentaire</StyledTableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {formulaire.sectionList.map((section, sectionIndex) => (
+        <React.Fragment key={sectionIndex}>
+          <TableRow>
+            <TableCell colSpan={8} sx={{ fontWeight: 'bold', backgroundColor: theme.palette.action.hover }}>
+              {section.description}
+            </TableCell>
+          </TableRow>
+          {section.regles.map((regle, regleIndex) => (
+            <TableRow key={regleIndex}>
+              <TableCell></TableCell>
+              <TableCell>{regle.description}</TableCell>
+              {['CONFORME', 'NON_CONFORME', 'OBSERVATION', 'AMELIORATION'].map((value) => (
+                <TableCell key={value}>
+                  <Checkbox
+                    checked={checkedItems[regle.id]?.value === value || existingReponses[regle.id]?.value === value}
+                    onChange={() => handleCheckboxChange(regle.id, value)}
+                    disabled={!isEditable || isSubmitting}
+                    color={
+                      value === 'CONFORME' ? 'primary' :
+                      value === 'NON_CONFORME' ? 'secondary' :
+                      value === 'OBSERVATION' ? 'info' : 'warning'
+                    }
+                  />
+                  {value.replace('_', ' ')}
+                </TableCell>
+              ))}
+              <TableCell>
+    <Select
+      value={checkedItems[regle.id]?.nonConformeLevel || ''}
+      onChange={(e) => handleNonConformeLevelChange(regle.id, e.target.value)}
+      disabled={!isEditable || isSubmitting || checkedItems[regle.id]?.value !== 'NON_CONFORME'}
+    >
+      <MenuItem value={1}>1</MenuItem>
+      <MenuItem value={2}>2</MenuItem>
+      <MenuItem value={3}>3</MenuItem>
+    </Select>
+  </TableCell>
+              <TableCell>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  variant="outlined"
+                  label="Commentaire"
+                  value={checkedItems[regle.id]?.commentaire || existingReponses[regle.id]?.commentaire || ''}
+                  onChange={(e) => handleCommentChange(regle.id, e.target.value)}
+                  disabled={!isEditable || isSubmitting}
+                  error={checkedItems[regle.id]?.value !== 'CONFORME' && !checkedItems[regle.id]?.commentaire}
+                  helperText={checkedItems[regle.id]?.value !== 'CONFORME' && !checkedItems[regle.id]?.commentaire ? "Commentaire obligatoire" : ""}
+                />
+              </TableCell>
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {formulaire.sectionList.map((section, sectionIndex) => (
-              <React.Fragment key={sectionIndex}>
-                <TableRow key={sectionIndex}> 
-                  <TableCell colSpan={4} sx={{ fontWeight: 'bold', backgroundColor: theme.palette.action.hover }}>
-                    {section.description}
-                  </TableCell>
-                </TableRow>
-                {section.regles.map((regle, regleIndex) => (
-                  <TableRow key={regleIndex}>
-                    <TableCell></TableCell>
-                    <TableCell>{regle.description}</TableCell>
-                    <TableCell>
-                      <Checkbox
-                        checked={checkedItems[regle.id] === 'Conform' || existingReponses[regle.id]===true}
-                        onChange={() => handleCheckboxChange(regle.id, 'Conform')}
-                        disabled={!isEditable || isSubmitting}
-                        color="primary"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Checkbox
-                        checked={checkedItems[regle.id] === 'Non-Conform' || existingReponses[regle.id]===false}
-                        onChange={() => handleCheckboxChange(regle.id, 'Non-Conform')}
-                        disabled={!isEditable || isSubmitting}
-                        color="secondary"
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          ))}
+        </React.Fragment>
+      ))}
+    </TableBody>
+  </Table>
+</TableContainer>
 
       <Grid container justifyContent="center" spacing={2}>
       {isEditable ? (

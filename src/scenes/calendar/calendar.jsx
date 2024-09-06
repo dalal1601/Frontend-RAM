@@ -41,6 +41,10 @@ const Calendar = () => {
     escaleVille: "",
     formulaire: "",
     auditeur: "",
+    handlingProvider:"",
+    typeAudit:""
+
+
   });
 
   useEffect(() => {
@@ -125,6 +129,8 @@ const Calendar = () => {
       escaleVille: "",
       formulaire: "",
       auditeur: "",
+      handlingProvider: "",
+    typeAudit: ""
     });
   };
 
@@ -140,6 +146,7 @@ const Calendar = () => {
     setPopupContent({
       nomFormulaire: info.event.extendedProps.formulaire,
       escaleVille: info.event.extendedProps.escaleVille,
+      aeroport: info.event.extendedProps.aeroport,
       dateDebut: info.event.extendedProps.dateDebut,
       dateFin: info.event.extendedProps.dateFin,
       auditeur: info.event.extendedProps.auditeur,
@@ -159,6 +166,7 @@ const Calendar = () => {
       escaleVille: selectedAudit.extendedProps.escaleVille,
       formulaire: formulaires.find(f => f.label === selectedAudit.extendedProps.formulaire).value,
       auditeur: auditeurs.find(a => a.label === selectedAudit.extendedProps.auditeur).value,
+      aeroport:selectedAudit.extendedProps.aeroport,
     });
     setOpenPopup(true);
   };
@@ -171,6 +179,8 @@ const Calendar = () => {
         dateFin: new Date(audit.dateFin).toISOString(),
         formulaire: { id: audit.formulaire },
         auditeur: { id: audit.auditeur },
+        typeAudit: audit.typeAudit,
+        handlingProvider: audit.handlingProvider
       };
 
       let response;
@@ -213,7 +223,10 @@ const Calendar = () => {
           audite: savedAudit.audite ? savedAudit.audite.fullname : '',
           formulaire: savedAudit.formulaire.nom,
           dateDebut: savedAudit.dateDebut,
+          aeroport: savedAudit.aeroport,
           dateFin: savedAudit.dateFin,
+          handlingProvider:savedAudit.handlingProvider,
+          typeAudit:savedAudit.typeAudit
         },
       };
 
@@ -345,6 +358,38 @@ const Calendar = () => {
                 value={audit.escaleVille}
                 onChange={(e) => setAudit({ ...audit, escaleVille: e.target.value })}
                 fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="aeroport">Aéroport</label>
+              <TextField
+                id="aeroport"
+                placeholder="Aéroport"
+                value={audit.aeroport}
+                onChange={(e) => setAudit({ ...audit, aeroport: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="HandlingProvider">Prestataire de services de manutention:</label>
+              <TextField
+                id="handlingProvider"
+                placeholder="Prestataire de services de manutention"
+                value={audit.handlingProvider}
+                onChange={(e) => setAudit({ ...audit, handlingProvider: e.target.value })}
+                fullWidth
+              />
+            </div>
+            <div>
+              <label htmlFor="typeAudit">Type d'audit:</label>
+              <Select
+                id="typeAudit"
+                options={[
+                  { value: 'INITIAL', label: 'Initial' },
+                  { value: 'RECURRENT', label: 'Récurrent' }
+                ]}
+                value={{ value: audit.typeAudit, label: audit.typeAudit === 'INITIAL' ? 'Initial' : 'Récurrent' }}
+                onChange={(selectedOption) => setAudit({ ...audit, typeAudit: selectedOption.value })}
               />
             </div>
             <div>
