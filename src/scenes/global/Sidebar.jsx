@@ -222,7 +222,7 @@ const Sidebar = () => {
             </Typography>
             <Item
               title="Report"
-              to="/form"
+              to={`/form/${userId}`}
               icon={<PersonOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}

@@ -1,146 +1,180 @@
-import React from 'react';
-import './CorrectiveActionPage.css'; // Add custom CSS for design
+import React, { useEffect, useState } from 'react';
+import './CorrectiveActionPage.css';
+import { useParams } from 'react-router-dom'; // Import useParams for URL params
 
-const CorrectiveActionPage = () => {
+const CorrectiveActionForm = () => {
+  const [isAuditee, setIsAuditee] = useState(false);
+  const [rules, setRules] = useState([]);
+  const [auditData, setAuditData] = useState(null);
+  const { userId } = useParams(); // Get user ID from URL params
+
+  useEffect(() => {
+    const fetchAuditDetails = async () => {
+      if (!userId) {
+        console.error('User ID is undefined');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No token found in localStorage');
+          return;
+        }
+
+        // Fetch audit details
+        const auditResponse = await fetch(`http://localhost:8080/Audit/audite/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!auditResponse.ok) {
+          const errorText = await auditResponse.text();
+          console.error('Fetch failed:', errorText);
+          throw new Error('Network response was not ok');
+        }
+
+        const auditData = await auditResponse.json();
+        console.log('Fetched Audit Data:', auditData);
+
+        if (auditData && Array.isArray(auditData) && auditData.length > 0) {
+          const audit = auditData.find(a => a.audite && a.audite.id === userId);
+
+          if (audit) {
+            setIsAuditee(true);
+            setAuditData(audit);
+
+            // Fetch responses for the audit
+            if (audit.id) {
+              const responseResponse = await fetch(`http://localhost:8080/Reponse/audit/${audit.id}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (!responseResponse.ok) {
+                const errorText = await responseResponse.text();
+                console.error('Fetch failed:', errorText);
+                throw new Error('Network response was not ok');
+              }
+
+              const responsesData = await responseResponse.json();
+              console.log('Fetched Responses Data:', responsesData);
+
+              // Access responses array from the responsesData object
+              if (responsesData && Array.isArray(responsesData.reponses)) {
+                // Filter out rules where value is 'CONFORME'
+                const filteredRules = responsesData.reponses.filter(rule => rule.value !== 'CONFORME');
+                setRules(filteredRules);
+              } else {
+                console.error('Responses data is not in the expected format:', responsesData);
+                setRules([]); // Reset rules to empty array if data is not in expected format
+              }
+            }
+          } else {
+            console.log('No matching audit data found for this user.');
+            setIsAuditee(false);
+          }
+        } else {
+          console.log('Audit data is empty or not in expected format.');
+          setIsAuditee(false);
+        }
+      } catch (error) {
+        console.error('Error fetching audit details:', error);
+      }
+    };
+
+    fetchAuditDetails();
+  }, [userId]);
+
+  if (!userId) {
+    return <div>User ID is not available.</div>;
+  }
+
+  if (!isAuditee) {
+    return <div>You are not authorized to view this form.</div>;
+  }
+
   return (
-    <div className="corrective-action-container">
-      <h1 className="form-title">Corrective Action Report</h1>
-
-      {/* Corrective Action Details */}
-      <div className="section">
-        <div className="row">
-          <label>Corrective Action:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Audit Station:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Subject:</label>
-          <input type="text" className="input-field" value="Audit of the Ground handler" readOnly />
-        </div>
-        <div className="row">
-          <label>Date:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Audited Process:</label>
-          <input type="text" className="input-field" value="Ground Handling" readOnly />
-        </div>
-      </div>
-
-      {/* Non-conformity and Findings */}
-      <div className="section">
-        <div className="row">
-          <label>Non-Conformity:</label>
-          <input type="checkbox" />
-        </div>
-        <div className="row">
-          <label>Note:</label>
-          <input type="checkbox" />
-        </div>
-        <div className="row">
-          <label>Category:</label>
-          <div className="radio-group">
-            <label><input type="radio" name="cat" /> 1</label>
-            <label><input type="radio" name="cat" /> 2</label>
-            <label><input type="radio" name="cat" /> 3</label>
+    <div className="corrective-action-form">
+      <h2>Hi, here is your corrective action form</h2>
+      {Array.isArray(rules) && rules.length === 0 ? (
+        <p>No rules available for this audit.</p>
+      ) : (
+        rules.map((rule, index) => (
+          <div key={rule.regle._id} className="form-section">
+            <h3>Form</h3>
+            <table className="form-table">
+              <tbody>
+                <tr>
+                  <td> <strong style={{ color: 'darkred' }}>Corrective action:</strong> N° {index + 1} </td>
+                  <td> <strong style={{ color: 'darkred' }}>Audit Station:</strong> {auditData?.escaleVille || 'XXX'}</td>
+                </tr>
+                <tr>
+                  <td> <strong style={{ color: 'darkred' }}>Subject: Audit of the Ground handler:</strong></td>
+                  <td> <strong style={{ color: 'darkred' }}>Date:</strong> {auditData?.dateDebut || 'XXX'}</td>
+                </tr>
+                <tr>
+                  <td colSpan="2"><strong style={{ color: 'darkred' }}>Audited Process: Ground Handling</strong></td>
+                </tr>
+                <tr>
+                  <td><strong style={{ color: 'darkred' }}>Non-Conformity:</strong> <input type="checkbox" checked={rule.value === 'NON_CONFORME'} readOnly /></td>
+                  <td> <strong style={{ color: 'darkred' }}>Note:</strong>
+                    <input type="checkbox" checked={rule.value === 'OBSERVATION' || rule.value === 'AMELIORATION'} readOnly />
+                    <strong style={{ color: 'darkred' }}>CAT: </strong>
+                    <input type="checkbox" checked={rule.nonConformeLevel === 1} readOnly /> 1
+                    <input type="checkbox" checked={rule.nonConformeLevel === 2} readOnly /> 2
+                    <input type="checkbox" checked={rule.nonConformeLevel === 3} readOnly /> 3
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan="2">
+                    <strong style={{ color: 'darkred' }}>Finding:</strong>
+                    <textarea rows="3" defaultValue={rule.commentaire || ''} />
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan="2">
+                    <strong style={{ color: 'darkred' }}>Root Cause:</strong>
+                    <textarea rows="3" /></td>
+                </tr>
+                <tr>
+                  <td colSpan="2"> <strong style={{ color: 'darkred' }}>Responsible of the Audit: </strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Auditor:</strong> {auditData?.auditeur.fullname || 'XXX'}</td>
+                  <td><strong>Audited:</strong> {auditData?.audite.fullname || 'XXX'}</td>
+                </tr>
+                <tr>
+                  <td colSpan="2"><strong style={{ color: 'darkred' }}>Definition of Corrective Action: </strong><textarea rows="3" defaultValue={rule.regle.actionCorrective|| ''} readOnly /></td>
+                </tr>
+                <tr>
+                  <td><strong style={{ color: 'darkred' }}>Responsable:</strong> <textarea rows="1" /></td>
+                  <td>
+                    <strong style={{ color: 'darkred' }}>Deadline:</strong>
+                    <input type="date" />
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan="2"><strong style={{ color: 'darkred' }}>Implementation of the Corrective Action:</strong><textarea rows="3" /></td>
+                </tr>
+                <tr>
+                  <td><strong style={{ color: 'darkred' }}>Responsible of the Processus:</strong><textarea rows="1" /></td>
+                  <td>
+                    <strong style={{ color: 'darkred' }}>Date:</strong>
+                    <input type="date" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-        <div className="row">
-          <label>Finding:</label>
-          <textarea className="textarea-field"></textarea>
-        </div>
-      </div>
-
-      {/* Root Cause */}
-      <div className="section">
-        <div className="row">
-          <label>Root Cause:</label>
-          <textarea className="textarea-field"></textarea>
-        </div>
-      </div>
-
-      {/* Responsable Information */}
-      <div className="section">
-        <div className="row">
-          <label>Responsable of the Audit:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Auditor:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Audited:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-      </div>
-
-      {/* Definition of Corrective Action */}
-      <div className="section">
-        <div className="row">
-          <label>Definition of Corrective Action:</label>
-          <textarea className="textarea-field"></textarea>
-        </div>
-        <div className="row">
-          <label>Responsable:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Deadline:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Implementation of Corrective Action:</label>
-          <textarea className="textarea-field"></textarea>
-        </div>
-      </div>
-
-      {/* Closing Details */}
-      <div className="section">
-        <div className="row">
-          <label>Responsible of the Process:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Date:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Close of Corrective Action:</label>
-        </div>
-        <div className="row">
-          <label>Effectiveness Verification:</label>
-          <div className="radio-group">
-            <label><input type="radio" name="effectiveness" /> Satisfactory</label>
-            <label><input type="radio" name="effectiveness" /> Yes</label>
-            <label><input type="radio" name="effectiveness" /> No</label>
-          </div>
-        </div>
-        <div className="row">
-          <label>FAC No.:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Commentary:</label>
-          <textarea className="textarea-field"></textarea>
-        </div>
-        <div className="row">
-          <label>Solde:</label>
-        </div>
-        <div className="row">
-          <label>Name:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-        <div className="row">
-          <label>Date:</label>
-          <input type="text" className="input-field" value="XXX" readOnly />
-        </div>
-      </div>
+        ))
+      )}
     </div>
   );
 };
 
-export default CorrectiveActionPage;
+export default CorrectiveActionForm;

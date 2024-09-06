@@ -69,6 +69,7 @@ const ChatRoom = () => {
 
     const onPublicMessageReceived = (payload) => {
         const payloadData = JSON.parse(payload.body);
+        console.log("Public message received:", payloadData);
 
         // Update the public chat state///////////////////////////////
         setPublicChats(prevChats => [...prevChats, payloadData]);

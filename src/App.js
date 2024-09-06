@@ -63,7 +63,7 @@ function App() {
                 <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                 <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
                 <Route path="/actions/:userId" element={<ProtectedRoute><Actions /></ProtectedRoute>} />
-                <Route path="/form" element={<ProtectedRoute><Form /></ProtectedRoute>} />
+                <Route path="/form/:userId" element={<ProtectedRoute><Form /></ProtectedRoute>} />
                 <Route path="/bar" element={<ProtectedRoute><Bar /></ProtectedRoute>} />
                 <Route path="/chat/:userId" element={<ProtectedRoute><ChatRoom /></ProtectedRoute>} />
                 <Route path="/line" element={<ProtectedRoute><Line /></ProtectedRoute>} />
