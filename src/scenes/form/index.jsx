@@ -114,11 +114,11 @@ const CorrectiveActionForm = () => {
                   <td> <strong style={{ color: 'darkred' }}>Audit Station:</strong> {auditData?.escaleVille || 'XXX'}</td>
                 </tr>
                 <tr>
-                  <td> <strong style={{ color: 'darkred' }}>Subject: Audit of the Ground handler:</strong></td>
+                  <td> <strong style={{ color: 'darkred' }}>Subject: </strong>Audit of the Ground handler:</td>
                   <td> <strong style={{ color: 'darkred' }}>Date:</strong> {auditData?.dateDebut || 'XXX'}</td>
                 </tr>
                 <tr>
-                  <td colSpan="2"><strong style={{ color: 'darkred' }}>Audited Process: Ground Handling</strong></td>
+                  <td colSpan="2"><strong style={{ color: 'darkred' }}>Audited Process:</strong> Ground Handling</td>
                 </tr>
                 <tr>
                   <td><strong style={{ color: 'darkred' }}>Non-Conformity:</strong> <input type="checkbox" checked={rule.value === 'NON_CONFORME'} readOnly /></td>
