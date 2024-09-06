@@ -94,7 +94,7 @@ const AuditeList = () => {
               color="primary"
               onClick={() => handleActivateUser(params.row.id)}
             >
-              Activer
+              Creer
             </Button>
           )}
         </Box>
