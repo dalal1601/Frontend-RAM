@@ -46,3 +46,6 @@ html {
   scrollbar-width: thin;
   scrollbar-color: linear-gradient(180deg, #28282B, #28282B) #f0f0f0;
 }
+input[type="file"] {
+  display: none;
+}

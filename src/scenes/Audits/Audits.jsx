@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Paper, Typography, Grid, Card, CardContent } from '@mui/material';
+import { Paper, Typography, Grid, Card, CardContent, Button } from '@mui/material';
 import { styled } from '@mui/system';
 
 const StyledCard = styled(Card)(({ theme, isToday, isAccessible }) => ({
@@ -36,6 +36,8 @@ const UserAudits = () => {
   const [audits, setAudits] = useState([]);
   const [error, setError] = useState('');
   const { userId } = useParams();
+  const [submittedForms, setSubmittedForms] = useState({});
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,10 +66,20 @@ const UserAudits = () => {
         const filteredAudits = data.filter(audit => 
           isToday(audit.dateFin) || isWithinPeriod(audit.dateDebut, audit.dateFin) || isFuture(audit.dateFin)
         );
-        const sortedAudits = filteredAudits.sort((a, b) => new Date(a.dateDebut) - new Date(b.dateDebut));
+      
+        const sortedAudits = data;
+        setAudits(sortedAudits);
 
-        console.log('Filtered audits:', sortedAudits );
-        setAudits(sortedAudits );
+        // Fetch submitted forms for each audit
+        const formsPromises = sortedAudits.map(audit =>
+          fetch(`http://localhost:8080/ActionCorrectiveRegister/audit/${audit.id}`)
+            .then(response => response.json())
+            .then(formData => ({ [audit.id]: formData.length > 0 }))
+        );
+
+        const formsResults = await Promise.all(formsPromises);
+        const formsData = Object.assign({}, ...formsResults);
+        setSubmittedForms(formsData);
       } catch (error) {
         setError('Error fetching audits: ' + error.message);
       }
@@ -107,6 +119,14 @@ const UserAudits = () => {
                     <Typography>Date de fin : {audit.dateFin}</Typography>
                   </CardContent>
                 </StyledCard>
+                {submittedForms[audit.id] && (
+                  <Button 
+                    sx={{padding:2, margin:2, backgroundColor:'#C2002F', color:'white', marginLeft:13}} 
+                    onClick={() => navigate(`/AuditeurAuditinfo/${audit.id}`)}
+                  >
+                    audite info
+                  </Button>
+                )}
               </Grid>
             );
           })
