@@ -21,11 +21,15 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import Calendar from "./scenes/calendar/calendar";
 import Reponse from "./scenes/Reponse/Reponse";
+import AdminAudite from "./scenes/adminvisfiles/AdminAudite";
+import AdminAuditeur from "./scenes/adminvisfiles/AdminAuditeur";
 import Audits from "./scenes/Audits/Audits";
 import ProtectedRoute from "./ProtectedRoute";
 import AuditeList from "./scenes/team/AuditeList"
 import Loginch from "./scenes/Login/Loginch"
 import Admins from "./scenes/team/Admins"
+import AuditeurAuditinfo from "./scenes/adminvisfiles/AuditeurAuditinfo";
+import UploadWidget from "./scenes/form/UploadWidget";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -71,10 +75,13 @@ function App() {
                 <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />
                 <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
                 <Route path="/Admins" element={<ProtectedRoute><Admins /></ProtectedRoute>} />
+                <Route path="/AdminAuditeur/:auditId" element={<ProtectedRoute><AdminAuditeur /></ProtectedRoute>} />
                 <Route path="/geography" element={<ProtectedRoute><Geography /></ProtectedRoute>} />
                 <Route path="/formulaires" element={<ProtectedRoute><AllFormulaire /></ProtectedRoute>} />
+                <Route path="/AdminAudite/:auditId" element={<ProtectedRoute><AdminAudite /> </ProtectedRoute>} />
                 <Route path="/formulaire/:id" element={<ProtectedRoute><FormulaireDetail /></ProtectedRoute>} />
                 <Route path="/reponse/:auditId" element={<ProtectedRoute><Reponse /></ProtectedRoute>} />
+                <Route path="/AuditeurAuditinfo/:auditId" element={<ProtectedRoute><AuditeurAuditinfo /> </ProtectedRoute>} />
                 <Route path="/Audits/:userId" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
                 <Route path="/AuditeList" element={<ProtectedRoute><AuditeList /></ProtectedRoute>} />
               </Routes>

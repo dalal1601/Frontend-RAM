@@ -6,6 +6,8 @@ import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import PopUpRED from "../../components/PopUpRED";
 import Select from "react-select";
+import { useNavigate } from 'react-router-dom';
+
 import {
   Box,
   Button,
@@ -13,12 +15,14 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import AdminAudite from "../adminvisfiles/AdminAudite";
+import AdminAuditeur from "../adminvisfiles/AdminAuditeur";
 import Header from "../../components/Header";
 import { tokens } from "../../theme";
 import Tooltip from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import fr from '@fullcalendar/core/locales/fr'; 
-
+ 
 const Calendar = () => {
 
    
@@ -121,6 +125,8 @@ const Calendar = () => {
       console.error("Error fetching Audits:", error);
     }
   };
+
+  const navigate = useNavigate();
 
   const resetAuditState = () => {
     setAudit({
@@ -437,14 +443,16 @@ const Calendar = () => {
         title="Audit Details"
         content={
           <div>
+          
+
             <Typography variant="h6" sx={{ marginTop: '16px' }}>Formulaire: {popupContent.nomFormulaire}</Typography>
             <Typography variant="h6">Ville d'escale: {popupContent.escaleVille}</Typography>
             <Typography variant="h6">Date de Début: {new Date(popupContent.dateDebut).toLocaleDateString("fr-FR")}</Typography>
             <Typography variant="h6">Date de Fin: {new Date(popupContent.dateFin).toLocaleDateString("fr-FR")}</Typography>
             <Typography variant="h6">Auditeur: {popupContent.auditeur}</Typography>
             <Typography variant="h6">Audite: {popupContent.audite}</Typography>
-
-            {new Date()< new Date(popupContent.dateDebut)&&(
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+            {new Date()< new Date(popupContent.dateDebut)?(
 
               <Button
                 variant="contained"
@@ -461,7 +469,39 @@ const Calendar = () => {
               </Button>
 
 
+            ):(
+                <>
+                <Button
+                  variant="contained"
+                  onClick={() => navigate(`/AdminAuditeur/${selectedAudit.id}`)}
+                 sx={{
+                        backgroundColor: '#C2002F',
+                        '&:hover': {
+                         backgroundColor: '#A5002A',
+                                  }
+                     }}
+                >
+                           Info Auditeur
+
+                </Button>
+
+
+               <Button
+  variant="contained"
+  onClick={() => navigate(`/AdminAudite/${selectedAudit.id}`)}
+  sx={{
+    backgroundColor: '#C2002F',
+    '&:hover': {
+      backgroundColor: '#A5002A',
+    }
+  }}
+>
+  Info Audite
+</Button>
+                </>
+            
             )}
+            </Box>
           </div>
         }
       />
