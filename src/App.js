@@ -30,6 +30,7 @@ import Loginch from "./scenes/Login/Loginch"
 import Admins from "./scenes/team/Admins"
 import AuditeurAuditinfo from "./scenes/adminvisfiles/AuditeurAuditinfo";
 import UploadWidget from "./scenes/form/UploadWidget";
+import NotFound from "./scenes/NotFound/NotFound";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -47,6 +48,8 @@ function App() {
   }, []);
 
   const isLoginPage = location.pathname === "/" || location.pathname === "/login";
+  const isNotFoundPage = location.pathname === "/NotFound";
+
   return (
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
@@ -55,35 +58,36 @@ function App() {
           <LoadingAnimation />
         ) : (
           <div className="app">
-            {!isLoginPage && <Sidebar isSidebar={isSidebar} />}
+            {!isLoginPage && !isNotFoundPage && <Sidebar isSidebar={isSidebar} />}
             <main className="content">
-              {!isLoginPage && <Topbar setIsSidebar={setIsSidebar} />}
+              {!isLoginPage && !isNotFoundPage && <Topbar setIsSidebar={setIsSidebar} />}
 
               <Routes>
                
                 <Route path="/" element={<Loginch />} />
                 <Route path="login" element={<Login />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-                <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute requiredRole="ADMIN" ><Dashboard /></ProtectedRoute>} />
+                <Route path="/team" element={<ProtectedRoute requiredRole="ADMIN"><Team /></ProtectedRoute>} />
+                <Route path="/contacts" element={<ProtectedRoute requiredRole="ADMIN"><Contacts /></ProtectedRoute>} />
                 <Route path="/actions/:userId" element={<ProtectedRoute><Actions /></ProtectedRoute>} />
-                <Route path="/form/:userId" element={<ProtectedRoute><Form /></ProtectedRoute>} />
-                <Route path="/bar" element={<ProtectedRoute><Bar /></ProtectedRoute>} />
+                <Route path="/form/:userId" element={<ProtectedRoute requiredRole="AUDITE"><Form /></ProtectedRoute>} />
+                <Route path="/bar" element={<ProtectedRoute requiredRole="ADMIN"><Bar /></ProtectedRoute>} />
                 <Route path="/chat/:userId" element={<ProtectedRoute><ChatRoom /></ProtectedRoute>} />
                 <Route path="/line" element={<ProtectedRoute><Line /></ProtectedRoute>} />
                 <Route path="/AuditForm" element={<ProtectedRoute><AuditForm /></ProtectedRoute>} />
                 <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />
-                <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
-                <Route path="/Admins" element={<ProtectedRoute><Admins /></ProtectedRoute>} />
+                <Route path="/calendar" element={<ProtectedRoute requiredRole="ADMIN"><Calendar /></ProtectedRoute>} />
+                <Route path="/Admins" element={<ProtectedRoute requiredRole="ADMIN"><Admins /></ProtectedRoute>} />
                 <Route path="/AdminAuditeur/:auditId" element={<ProtectedRoute><AdminAuditeur /></ProtectedRoute>} />
-                <Route path="/geography" element={<ProtectedRoute><Geography /></ProtectedRoute>} />
-                <Route path="/formulaires" element={<ProtectedRoute><AllFormulaire /></ProtectedRoute>} />
+                <Route path="/geography" element={<ProtectedRoute requiredRole="ADMIN"><Geography /></ProtectedRoute>} />
+                <Route path="/formulaires" element={<ProtectedRoute requiredRole="ADMIN"><AllFormulaire /></ProtectedRoute>} />
                 <Route path="/AdminAudite/:auditId" element={<ProtectedRoute><AdminAudite /> </ProtectedRoute>} />
-                <Route path="/formulaire/:id" element={<ProtectedRoute><FormulaireDetail /></ProtectedRoute>} />
+                <Route path="/formulaire/:id" element={<ProtectedRoute requiredRole="ADMIN"><FormulaireDetail /></ProtectedRoute>} />
                 <Route path="/reponse/:auditId" element={<ProtectedRoute><Reponse /></ProtectedRoute>} />
                 <Route path="/AuditeurAuditinfo/:auditId" element={<ProtectedRoute><AuditeurAuditinfo /> </ProtectedRoute>} />
-                <Route path="/Audits/:userId" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
-                <Route path="/AuditeList" element={<ProtectedRoute><AuditeList /></ProtectedRoute>} />
+                <Route path="/Audits/:userId" element={<ProtectedRoute requiredRole="AUDITEUR"><Audits /></ProtectedRoute>} />
+                <Route path="/AuditeList" element={<ProtectedRoute requiredRole="ADMIN" ><AuditeList /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
           </div>
