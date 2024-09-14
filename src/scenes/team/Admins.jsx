@@ -219,7 +219,7 @@ const Admins = () => {
       </Box>
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>
-          {selectedUser ? "Edit Auditor" : "Create Auditor"}
+          {selectedUser ? "Edit Auditor" : "Créer ADMIN"}
           <IconButton
             aria-label="close"
             onClick={handleClose}

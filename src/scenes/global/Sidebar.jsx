@@ -291,7 +291,11 @@ const Sidebar = () => {
                 selected={selected}
                 setSelected={setSelected}
               />
+               {userDetails?.role && userDetails.role.includes('ADMIN') && (
+              <>
               Charts
+              </>
+            )}
             </Typography>
             
             {userDetails?.role && userDetails.role.includes('ADMIN') && (
