@@ -4,7 +4,10 @@ import {
   Typography, createTheme, ThemeProvider, Alert, Snackbar 
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import useUserDetails from '../../hook/useUserDetails';
+
 import { useNavigate } from "react-router-dom";
+
 
 const defaultTheme = createTheme();
 
@@ -17,7 +20,7 @@ export default function Login() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("error");
-
+  const userDetails = useUserDetails();
 
   const handleEmailSubmit = async (event) => {
     event.preventDefault();
@@ -55,31 +58,48 @@ export default function Login() {
         },
         body: JSON.stringify({ username: email, password }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Login failed");
       }
-  
+
       const data = await response.json();
       console.log("Login response:", data);
       
       const idodi = JSON.parse(atob(data.access_token.split('.')[1]));
-      const idm9ad=idodi.sub;
+      const idm9ad = idodi.sub;
 
       if (data.access_token && data.idMongo) {
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("idmongo", data.idMongo);
-        localStorage.setItem("id",idm9ad)
+        localStorage.setItem("id", idm9ad);
 
-        console.log("idMongo stored in localStorage:", data.idMongo);
-        navigate("/dashboard");
+        // Fetch user details to determine the role
+        const userResponse = await fetch(`http://localhost:8080/User/${idm9ad}`, {
+          headers: { "Authorization": `Bearer ${data.access_token}` }
+        });
+        const userData = await userResponse.json();
+
+        // Redirect based on the user's role
+        switch (userData.role) {
+          case 'ADMIN':
+            navigate("/dashboard");
+            break;
+          case 'AUDITEUR':
+            navigate(`/Audits/${idm9ad}`);
+            break;
+          case 'AUDITE':
+            navigate(`/form/${idm9ad}`);
+            break;
+          default:
+            navigate("/"); // Redirect to a default page or show an error
+        }
       } else {
         throw new Error("Login successful but required data is missing");
       }
     } catch (error) {
       console.error("Login error:", error);
-      
       setOpenSnackbar(true);
     }
   };
