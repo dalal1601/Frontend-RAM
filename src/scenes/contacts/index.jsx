@@ -58,8 +58,8 @@ const Contacts = () => {
   return (
     <Box m="20px">
       <Header
-        title="USERS"
-        subtitle="List of Users with Their Details"
+        title="UTILISATEUR"
+        subtitle="Liste d'utilisateurs"
       />
       <Box
         m="40px 0 0 0"

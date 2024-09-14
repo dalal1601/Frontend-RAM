@@ -87,6 +87,7 @@ const Sidebar = () => {
     borderRadius: '50%',
   };
 
+
   return (
     <Box
       sx={{
@@ -162,57 +163,63 @@ const Sidebar = () => {
           )}
 
           <Box paddingLeft={isCollapsed ? undefined : "10%"}>
-            <Item
-              title="Dashboard"
-              to="/dashboard"
-              icon={<HomeOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
+            {userDetails?.role && userDetails.role.includes('ADMIN') && (
+              <>
 
-            <Typography
-              variant="h6"
-              color={colors.grey[300]}
-              sx={{ m: "15px 0 5px 20px" }}
-            >
-              Utilisateurs
-            </Typography>
-            <Item
-              title="Auditeurs"
-              to="/team"
-              icon={<PeopleOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Audités List"
-              to="/AuditeList"
-              icon={<PeopleOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Admins"
-              to="/Admins"
-              icon={<AccountCircleIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Utilisateurs"
-              to="/contacts"
-              icon={<ContactsOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Actions Correctives"
-              to={`/actions/${userId}`}
-              icon={<ReceiptOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
+                <Item
+                  title="Dashboard"
+                  to="/dashboard"
+                  icon={<HomeOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
 
+                <Typography
+                  variant="h6"
+                  color={colors.grey[300]}
+                  sx={{ m: "15px 0 5px 20px" }}
+                >
+                  Utilisateurs
+                </Typography>
+                <Item
+                  title="Auditeurs"
+                  to="/team"
+                  icon={<PeopleOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Audités List"
+                  to="/AuditeList"
+                  icon={<PeopleOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Admins"
+                  to="/Admins"
+                  icon={<AccountCircleIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Utilisateurs"
+                  to="/contacts"
+                  icon={<ContactsOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+              </>
+            )}
+            {/*  {userDetails?.role && userDetails.role.includes('AUDITE') && (
+              <Item
+                title="Actions Correctives"
+                to={`/actions/${userId}`}
+                icon={<ReceiptOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}*/}
             <Typography
               variant="h6"
               color={colors.grey[300]}
@@ -220,35 +227,44 @@ const Sidebar = () => {
             >
               Audits
             </Typography>
-            <Item
-              title="Report"
-              to={`/form/${userId}`}
-              icon={<PersonOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Formulaires"
-              to="/formulaires"
-              icon={<FileCopyIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
+            {userDetails?.role === 'AUDITE' && (
 
-            <Item
-              title="Audits"
-              to={`/Audits/${userId}`} // Ensure userId is a string
-              icon={<FileCopyIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Calendrier"
-              to="/calendar"
-              icon={<CalendarTodayOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
+              <Item
+                title="Report"
+                to={`/form/${userId}`}
+                icon={<ReceiptOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
+            {userDetails?.role && userDetails.role.includes('ADMIN') && (
+              <Item
+                title="Formulaires"
+                to="/formulaires"
+                icon={<FileCopyIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
+            {userDetails?.role === 'AUDITEUR' &&  (
+              <Item
+                title="Audits"
+                to={`/Audits/${userId}`} // Ensure userId is a string
+                icon={<FileCopyIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
+            {userDetails?.role === 'ADMIN' && (
+              <Item
+                title="Calendrier"
+                to="/calendar"
+                icon={<CalendarTodayOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
+            {/*
             <Item
               title="FAQ Page"
               to="/faq"
@@ -256,33 +272,38 @@ const Sidebar = () => {
               selected={selected}
               setSelected={setSelected}
             />
-
+            */}
             <Typography
               variant="h6"
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
+              Chat
+              <Item
+                title="Chat"
+                to={`/chat/${userId}`}
+                icon={
+                  <div style={redDotStyle}>
+                    <ChatBubbleOutlineOutlinedIcon />
+                    <span style={afterStyle}></span>
+                  </div>
+                }
+                selected={selected}
+                setSelected={setSelected}
+              />
               Charts
             </Typography>
-            <Item
-              title="Bar Chart"
-              to="/bar"
-              icon={<BarChartOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Chat"
-              to={`/chat/${userId}`}
-              icon={
-                <div style={redDotStyle}>
-                  <ChatBubbleOutlineOutlinedIcon />
-                  <span style={afterStyle}></span>
-                </div>
-              }
-              selected={selected}
-              setSelected={setSelected}
-            />
+            
+            {userDetails?.role && userDetails.role.includes('ADMIN') && (
+              <Item
+                title="Bar Chart"
+                to="/bar"
+                icon={<BarChartOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
+            {/*}
             <Item
               title="Line Chart"
               to="/line"
@@ -290,13 +311,17 @@ const Sidebar = () => {
               selected={selected}
               setSelected={setSelected}
             />
-            <Item
-              title="Geography Chart"
-              to="/geography"
-              icon={<MapOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
+            */}
+            {userDetails?.role && userDetails.role.includes('ADMIN') && (
+
+              <Item
+                title="Geography Chart"
+                to="/geography"
+                icon={<MapOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
           </Box>
         </Menu>
       </ProSidebar>

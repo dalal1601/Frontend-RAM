@@ -255,7 +255,7 @@ const Calendar = () => {
   return (
     <Box m="20px">
       <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Header title="Calendar" subtitle="Full Calendar Interactive Page" />
+        <Header title="Calendrier" subtitle="Page du Calendrier" />
         <Button
           variant="contained"
           sx={{

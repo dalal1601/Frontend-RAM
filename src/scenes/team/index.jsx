@@ -26,7 +26,9 @@ const Team = () => {
           throw new Error('Network response was not ok');
         }
         const data = await response.json();
-        setUsers(data);
+        // Filter users by role
+        const filteredUsers = data.filter(user => user.role === "AUDITEUR");
+        setUsers(filteredUsers);
       } catch (error) {
         console.error('There was an error fetching the users:', error);
         setError('Failed to fetch users. Please try again.');
@@ -178,7 +180,7 @@ const Team = () => {
 
   return (
     <Box m="20px">
-      <Header title="TEAM" subtitle="Managing the Team Members" />
+      <Header title="AUDITEURS" subtitle="Gérer les membres" />
       <Box display="flex" justifyContent="flex-end" m="20px 0">
         <Button variant="contained" color="primary" onClick={handleOpen}>
           Créer un Auditeur

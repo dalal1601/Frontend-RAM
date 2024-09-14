@@ -180,7 +180,7 @@ const Admins = () => {
 
   return (
     <Box m="20px">
-      <Header title="TEAM" subtitle="Managing the Team Members" />
+      <Header title="ADMINS" subtitle="Gestion des admins" />
       <Box display="flex" justifyContent="flex-end" m="20px 0">
         <Button variant="contained" color="primary" onClick={handleOpen}>
           Créer un Admin
