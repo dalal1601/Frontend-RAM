@@ -284,7 +284,7 @@ const CorrectiveActionForm = () => {
                         <StyledTextField
                           multiline
                           rows={3}
-                          defaultValue={rule.commentaire || ''}
+                          defaultValue={rule.regle.description || ''}
                           InputProps={{readOnly:true, disableUnderline:true}}
                         />
                       </StyledTableCell>

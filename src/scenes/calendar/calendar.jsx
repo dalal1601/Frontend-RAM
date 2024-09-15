@@ -118,6 +118,9 @@ const Calendar = () => {
             formulaire: audit.formulaire.nom, // Assuming formulaire has a nom field
             dateDebut: audit.dateDebut,
             dateFin: audit.dateFin,
+            handlingProvider: audit.handlingProvider,
+            typeAudit: audit.typeAudit,
+            aeroport:audit.aeroport
           },
         }));
       setCurrentEvents(events);
@@ -172,7 +175,9 @@ const Calendar = () => {
       escaleVille: selectedAudit.extendedProps.escaleVille,
       formulaire: formulaires.find(f => f.label === selectedAudit.extendedProps.formulaire).value,
       auditeur: auditeurs.find(a => a.label === selectedAudit.extendedProps.auditeur).value,
-      aeroport:selectedAudit.extendedProps.aeroport,
+      aeroport: selectedAudit.extendedProps.aeroport,
+      handlingProvider: selectedAudit.extendedProps.handlingProvider, // Ajoutez cette ligne
+      typeAudit: selectedAudit.extendedProps.typeAudit
     });
     setOpenPopup(true);
   };
@@ -379,24 +384,24 @@ const Calendar = () => {
             <div>
               <label htmlFor="HandlingProvider">Prestataire de services de manutention:</label>
               <TextField
-                id="handlingProvider"
-                placeholder="Prestataire de services de manutention"
-                value={audit.handlingProvider}
-                onChange={(e) => setAudit({ ...audit, handlingProvider: e.target.value })}
-                fullWidth
+                 id="handlingProvider"
+    placeholder="Prestataire de services de manutention"
+    value={audit.handlingProvider}
+    onChange={(e) => setAudit({ ...audit, handlingProvider: e.target.value })}
+    fullWidth
               />
             </div>
             <div>
               <label htmlFor="typeAudit">Type d'audit:</label>
               <Select
-                id="typeAudit"
-                options={[
-                  { value: 'INITIAL', label: 'Initial' },
-                  { value: 'RECURRENT', label: 'Récurrent' }
-                ]}
-                value={{ value: audit.typeAudit, label: audit.typeAudit === 'INITIAL' ? 'Initial' : 'Récurrent' }}
-                onChange={(selectedOption) => setAudit({ ...audit, typeAudit: selectedOption.value })}
-              />
+    id="typeAudit"
+    options={[
+      { value: 'INITIAL', label: 'Initial' },
+      { value: 'RECURRENT', label: 'Récurrent' }
+    ]}
+    value={{ value: audit.typeAudit, label: audit.typeAudit === 'INITIAL' ? 'Initial' : 'Récurrent' }}
+    onChange={(selectedOption) => setAudit({ ...audit, typeAudit: selectedOption.value })}
+  />
             </div>
             <div>
               <label htmlFor="formulaire">Formulaire:</label>

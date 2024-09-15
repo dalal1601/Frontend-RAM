@@ -1,20 +1,21 @@
 import React, { useState } from "react";
-import Avatar from "@mui/material/Avatar";
-import Button from "@mui/material/Button";
-import CssBaseline from "@mui/material/CssBaseline";
-import TextField from "@mui/material/TextField";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
-import Link from "@mui/material/Link";
-import Paper from "@mui/material/Paper";
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
+import {
+  Avatar,
+  Button,
+  CssBaseline,
+  TextField,
+  Link,
+  Paper,
+  Box,
+  Grid,
+  Typography,
+  createTheme,
+  ThemeProvider,
+  Alert,
+  Snackbar,
+} from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import Typography from "@mui/material/Typography";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import { Alert, Snackbar } from "@mui/material";
-import { ErrorMessage } from "formik";
 
 const defaultTheme = createTheme();
 
@@ -24,8 +25,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [error, setError] = useState("");
-  
-
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -42,30 +41,51 @@ export default function Login() {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Login failed");
-      }
-  
+      } 
+      
       const data = await response.json();
-      console.log("Login response:", data);
+      if (data.access_token) {
+        const tokenPayload = JSON.parse(atob(data.access_token.split('.')[1]));
+        const userId = tokenPayload.sub;
 
-      const idodi = JSON.parse(atob(data.access_token.split('.')[1]));
-      const idm9ad=idodi.sub;
-
-      if (data.access_token && data.idMongo) {
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("idmongo", data.idMongo);
-        localStorage.setItem("id",idm9ad)
-        console.log("idMongo stored in localStorage:", data.idMongo);
-        navigate("/dashboard");
+        localStorage.setItem("id", userId);
+
+        // Fetch user details to determine the role
+        const userResponse = await fetch(`http://localhost:8080/User/${userId}`, {
+          headers: { "Authorization": `Bearer ${data.access_token}` }
+        });
+        
+        if (!userResponse.ok) {
+          throw new Error("Failed to fetch user details");
+        }
+        
+        const userData = await userResponse.json();
+
+        // Redirect based on the user's role
+        switch (userData.role) {
+          case 'ADMIN':
+            navigate("/dashboard");
+            break;
+          case 'AUDITEUR':
+            navigate(`/Audits/${userId}`);
+            break;
+          case 'AUDITE':
+            navigate(`/form/${userId}`);
+            break;
+          default:
+            throw new Error("Unknown user role");
+        }
       } else {
         throw new Error("Login successful but required data is missing");
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError(error.message);
+      setError("Les informations que vous avez saisies sont incorrectes");
       setOpenSnackbar(true);
     }
   };
-
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
@@ -93,37 +113,67 @@ export default function Login() {
         />
         <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
           <Box sx={{ my: 8, mx: 4, display: "flex", flexDirection: "column", alignItems: "center" }}>
-       
-            <img src="/assets/images.png"
-                alt="logo"
-                style={{ width : '30%',
-                         height:'30%',
-                         objectFit : 'cover',   
-                        marginBottom:"50px"
-                         
-                         }}
+            <img 
+              src="/assets/images.png"
+              alt="logo"
+              style={{ 
+                width: '30%',
+                height: 'auto',
+                objectFit: 'contain',   
+                marginBottom: "50px"
+              }}
             />
-           
-            <Typography component="h1" variant="h7">Bienvenu a Votre Application</Typography>
+            <Typography component="h1" variant="h5">Bienvenue à Votre Application</Typography>
             <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 1 }}>
-              <TextField margin="normal" required fullWidth id="email" label="Email Address" name="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
-              <TextField margin="normal" required fullWidth name="password" label="Password" type="password" id="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              {error && <Typography color="error">{error}</Typography>}
-              <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 ,    backgroundColor: '#C2002F',
-            '&:hover': {
-              backgroundColor: '#A5002A', // Une teinte légèrement plus foncée pour l'effet hover
-            },
-            '&:disabled': {
-              backgroundColor: '#FFB3B3', // Une teinte plus claire pour l'état désactivé
-            }}}>Sign In</Button>
-               
+              <TextField 
+                margin="normal" 
+                required 
+                fullWidth 
+                id="email" 
+                label="Adresse Email" 
+                name="email" 
+                autoComplete="email" 
+                autoFocus 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+              />
+              <TextField 
+                margin="normal" 
+                required 
+                fullWidth 
+                name="password" 
+                label="Mot de passe" 
+                type="password" 
+                id="password" 
+                autoComplete="current-password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+              />
+              <Button 
+                type="submit" 
+                fullWidth 
+                variant="contained" 
+                sx={{ 
+                  mt: 3, 
+                  mb: 2,    
+                  backgroundColor: '#C2002F',
+                  '&:hover': {
+                    backgroundColor: '#A5002A',
+                  },
+                  '&:disabled': {
+                    backgroundColor: '#FFB3B3',
+                  }
+                }}
+              >
+                Se connecter
+              </Button>
             </Box>
           </Box>
         </Grid>
       </Grid>
       <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
         <Alert onClose={handleCloseSnackbar} severity="error" sx={{width:'100%'}}>
-            <Typography>Les informations que vous avez saisies sont incorrectes</Typography>
+          {error}
         </Alert>
       </Snackbar>
     </ThemeProvider>
